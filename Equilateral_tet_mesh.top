@@ -1,0 +1,9 @@
+Nodes FluidNodes
+1 -0.5 0.0 0.0
+2  0.5 0.0 0.0
+3  0.0 0.8660254037844386  0.0
+4  0.0 0.28867513459481292  0.81649658092772603
+Elements FluidMesh using FluidNodes
+1 5 1 2 3 4
+Elements OutletFixedSurface using FluidNodes
+1 4 1 2 3
