@@ -1,7 +1,7 @@
 import sys
 import numpy as np
 import matplotlib.pyplot as plt
-
+import TopFileTool
 def _tetrahedron_volume(nodes):
     '''
     :param nodes[4,3]:
@@ -120,36 +120,9 @@ def _tetrahedron_quantities(nodes):
 
 class Mesh:
     def __init__(self,mshfile):
-        try:
-            fid = open(mshfile, "r")
-        except IOError:
-            print("File '%s' not found." % mshfile)
-            sys.exit()
-
-        nodes = []
-        elems = []
-
-        print('Reading mesh ...')
-
-        line = fid.readline() # should be "Nodes FluidNodes"
-
-        while line:
-            line = fid.readline()
-            data = line.split()
-            if data[0] == 'Elements':
-                break;
-            nodes.append(list(map(float, data[1:4])))
-
-        while line:
-            line = fid.readline()
-            data = line.split()
-            if data[0] == 'Elements':
-                break;
-            elems.append(list(map(int, data[2:6])))
-
-
+        nodes, elems = TopFileTool.read_tet(mshfile)
         self.nodes = np.array(nodes, dtype = float)
-        self.elems = np.array(elems,dtype = int) - 1 #fixed top file 1-based index
+        self.elems = np.array(elems,dtype = int)
 
 
 
