@@ -118,7 +118,7 @@ def _tetrahedron_quantities(nodes):
 
     return vol, edge_min, edge_max, edge_ave, edge_rms, CR, IR, S2
 
-class mesh:
+class Mesh:
     def __init__(self,mshfile):
         try:
             fid = open(mshfile, "r")
@@ -300,7 +300,7 @@ if __name__ == '__main__':
         print('\n\n')
 
     ##############Test class
-    tet_mesh = mesh('Equilateral_tet_mesh.top')
+    tet_mesh = Mesh('Equilateral_tet_mesh.top')
     AR = tet_mesh.AR
     print(AR)
     tet_mesh.plot()
