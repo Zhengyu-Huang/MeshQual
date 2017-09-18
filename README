@@ -1,0 +1,15 @@
+This is the implementation of:
+[1]Arnold, Douglas N., Arup Mukherjee, and Luc Pouly "Locally adapted tetrahedral
+meshes using bisection." SIAM Journal on Scientific Computing 22.2 (2000): 431-448.
+and Parthasarathy, V. N., C. M. Graichen
+[2]A. F. Hathaway. "A comparison of tetrahedron quality measures." Finite Elements
+in Analysis and Design 15.3 (1994): 255-261.
+
+
+The adaptive mesh refinement algorithm[1] is in AMRMesh.py file, the mesh format is .top file,
+but the algorithm uses only the node list and element list. MeshQual.py read mesh file, plot several
+aspect ratios[2] to qualify the mesh.
+
+The test results of refining a cube [-1,1],[-1,1],[-1,1], at point (0.2,0.3,0.4) by 50 times is in
+cube_initial_qual.png, cube_ref50_qual.png and cube_ref50.png. The algorithm is efficient and the quality
+of the mesh is excellent! The aspect ratio is bounded!
