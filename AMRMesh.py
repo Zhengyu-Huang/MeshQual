@@ -5,8 +5,28 @@ import copy
 import TopFileTool
 
 
+'''
+Implement the algorithm in
+Arnold, Douglas N., Arup Mukherjee, and Luc Pouly.
+"Locally adapted tetrahedral meshes using bisection."
+SIAM Journal on Scientific Computing 22.2 (2000): 431-448.
+'''
+
+
+
 def pair_sort(a,b):
     return (a,b) if a < b else (b,a)
+
+def inside_tet(xyz,point):
+
+    for i in range(4):
+        n0,n1,n2 = [n for n in range(4) if n != i]
+        alpha = np.dot(xyz[n0, :] - xyz[i, :], np.cross(xyz[n1, :] - xyz[i, :], xyz[n2, :] - xyz[i, :]))/\
+                np.dot(xyz[n0, :] - point, np.cross(xyz[n1, :] - point, xyz[n2, :] - point))
+        if(alpha < 0):
+            return False
+
+    return True
 
 class MarkedTet():
     def __init__(self, nodes,  faceEdges, flag):
@@ -49,11 +69,18 @@ class MarkedTet():
 
             nodes.append([a, b, c, n])
 
-            # a, b opposite faces are cut faces, their marked edges are the opposite edge of the new nodes
-            # c opposite faces are new faces, its marked edge is the edge connecting the new vertex to
-            # the new refined edge; or the opposite edge if the type is Pf
-            # the edge marked on the inherited face is (a,b), it is also refinement edge
-            faceEdges.append([pair_sort(b,c),pair_sort(a,c),pair_sort(n,nf) if type == 'Pf' else pair_sort(a,b),(a,b)])
+
+            # the edge marked on the inherited face is (a,b), it is also refinement edge -> faceEdges[3] = (a,b)
+            # cut faces, : opposite of the new node
+            # new faces, : opposite of the new node(default), if type= 'Pf' its marked edge is the edge
+            # connecting the new vertex to
+            # by default : the other 3 marked edges, we first put the opposite of the new node
+            # and if the type = 'Pf', the new face is self.nodes[i] opposite face, the marked edge is (n, nf)
+            faceEdges.append([pair_sort(b,c),pair_sort(a,c),pair_sort(a,b),(a,b)])
+
+            if type == 'Pf':
+                # for coplanar, we know the new node is either a nor b
+                faceEdges[i][(0 if self.nodes[i] == a else 1)] = pair_sort(n,nf)
 
             flag.append( 1 if type == 'Pu' else 0)
 
@@ -80,8 +107,8 @@ class MarkedTet():
                 if n != self.nodes[0] and n != self.nodes[1]:
                     nf = n
                     break
-
-            return ('Pf', nf)  if self.flag == 0 else ('Pu',nf)
+            #it is Pf if flag is set, otherwise Pu
+            return ('Pf', nf)  if self.flag == 1 else ('Pu',nf)
         else:
             return 'AOM',nf
 
@@ -292,14 +319,54 @@ class AmrMesh():
 
 
 
+    def find(self,point):
+        '''
+        find elements that contains this point
+        :param point: float[3]
+        :return: a list of element ids
+        '''
+        markedElems = self.markedElems
+        nodes = self.nodes
+        nElems = len(markedElems)
+        rElems = []
+        for e in range(nElems):
+            ele = markedElems[e]
+            xyz = np.array([nodes[ele.nodes[0]],nodes[ele.nodes[1]],nodes[ele.nodes[2]],nodes[ele.nodes[3]]])
+            if inside_tet(xyz, point):
+                rElems.append(e)
+        return rElems
 
 
 
 
 if __name__ == '__main__':
-    amrMesh = AmrMesh('Refined_equilateral_tet_mesh.top')
-    amrMesh.refine([0,1,3])
-    amrMesh.output_to_top('Refined_equilateral_tet_mesh.top')
+    test = 1
+    if(test == 0):
+        amrMesh = AmrMesh('Trirectangular_tet_mesh.top')
+        amrMesh.refine([0])
+        amrMesh.output_to_top('Refined_mesh.top')
+
+    elif(test == 1):
+        #Test: read a cube[-1,1][-1,1][-1,1], refine the element containing (0.2., 0.3, 0.4)
+        amrMesh = AmrMesh('cube.top')
+        refineLevel = 50
+        singularity = np.array([0.2,0.3,0.4])
+        for i in range(refineLevel):
+            rElems = amrMesh.find(singularity)
+            amrMesh.refine(rElems)
+        amrMesh.output_to_top('Refined_mesh.top')
+
+        from MeshQual import Mesh
+        tet_mesh = Mesh('Refined_mesh.top')
+        AR = tet_mesh.AR
+        tet_mesh.plot()
+
+        tet_mesh = Mesh('cube.top')
+        AR = tet_mesh.AR
+        tet_mesh.plot()
+
+
+
 
 
 

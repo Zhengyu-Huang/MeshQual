@@ -1,0 +1,7 @@
+Nodes FluidNodes
+1 1.0  0.0  0.0
+2 0.0  0.0  0.
+3 0.0  2.0  0.
+4 0.0  0.0  3.
+Elements FluidMesh using FluidNodes
+1 5 1 2 3 4
