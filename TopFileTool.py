@@ -45,7 +45,7 @@ def read_tet(mshfile):
 
     return nodes, elems
 
-def write_tet(mshfile,nodes,elems):
+def write_tet(nodes,elems, boundaries, mshfile = 'domain.top'):
     '''
     This function writes top file, mshfile, node coordinates are  in the list nodes,
     and element node numbers are in elems(the node number is 0-based index instead of top file'
@@ -58,12 +58,22 @@ def write_tet(mshfile,nodes,elems):
     nNodes,nElems = len(nodes), len(elems)
 
     file.write('Nodes FluidNodes\n')
-    for i in range(nNodes):
-        file.write('%d  %.12f  %.12f  %.12f\n'%(i+1, nodes[i][0],nodes[i][1],nodes[i][2]))
+    for nN in range(nNodes):
+        file.write('%d  %.12f  %.12f  %.12f\n'%(nN + 1, nodes[nN][0],nodes[nN][1],nodes[nN][2]))
 
     file.write('Elements FluidMesh using FluidNodes\n')
-    for i in range(nElems):
-        file.write('%d  %d  %d  %d  %d  %d\n'%(i+1, 5, elems[i][0] + 1, elems[i][1] + 1, elems[i][2] + 1,elems[i][3] + 1))
+    for nE in range(nElems):
+        file.write('%d  %d  %d  %d  %d  %d\n'%(nE + 1, 5, elems[nE][0] + 1, elems[nE][1] + 1, elems[nE][2] + 1,elems[nE][3] + 1))
+
+    nBound = len(boundaries)
+    for nB in range(nBound):
+        file.write('Elements InletFiexedSurface using FluidNodes\n')
+        boundary = boundaries[nB]
+        nTris = len(boundary)
+
+        for nT in range(nTris):
+            nE += 1
+            file.write('%d  %d  %d  %d  %d\n' % (nE, 4, boundary[nT][0] + 1, boundary[nT][1] + 1, boundary[nT][2] + 1))
 
     file.close()
 
