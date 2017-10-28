@@ -119,7 +119,7 @@ class MarkedTet():
 
 
 
-class AmrMesh():
+class AmrMeshArnold():
 
     def __init__(self, mshfile):
         '''
@@ -342,13 +342,13 @@ class AmrMesh():
 if __name__ == '__main__':
     test = 1
     if(test == 0):
-        amrMesh = AmrMesh('Trirectangular_tet_mesh.top')
+        amrMesh = AmrMeshArnold('Trirectangular_tet_mesh.top')
         amrMesh.refine([0])
         amrMesh.output_to_top('Refined_mesh.top')
 
     elif(test == 1):
         #Test: read a cube[-1,1][-1,1][-1,1], refine the element containing (0.2., 0.3, 0.4)
-        amrMesh = AmrMesh('cube.top')
+        amrMesh = AmrMeshArnold('cube.top')
         refineLevel = 50
         singularity = np.array([0.2,0.3,0.4])
         for i in range(refineLevel):
