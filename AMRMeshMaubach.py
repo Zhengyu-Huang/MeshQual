@@ -296,18 +296,34 @@ class AmrMeshMaubach():
 
 if __name__ == '__main__':
     print('AMR Mesh Maubach')
-    amrMesh = AmrMeshMaubach('domain.top')
-    refineLevel = 50
-    singularity = np.array([2.3,0.3,0.4])
-    for i in range(refineLevel):
-        rElems = amrMesh.find(singularity)
-        amrMesh.refine(rElems)
-    amrMesh.output_to_top('Refined_mesh.top')
+    test = 1
+    if(test == 0):
+        amrMesh = AmrMeshMaubach('domain.top')
+        refineLevel = 50
+        singularity = np.array([2.3,0.3,0.4])
+        for i in range(refineLevel):
+            rElems = amrMesh.find(singularity)
+            amrMesh.refine(rElems)
+        amrMesh.output_to_top('Refined_mesh.top')
 
-    from MeshQual import Mesh
-    tet_mesh = Mesh('Refined_mesh.top')
-    AR = tet_mesh.AR
-    tet_mesh.plot()
+        from MeshQual import Mesh
+        tet_mesh = Mesh('Refined_mesh.top')
+        AR = tet_mesh.AR
+        tet_mesh.plot()
+    elif(test == 1):
+        print('Test conformity')
+        amrMesh = AmrMeshMaubach('domain.top')
+        refineLevel = 4
+        for i in range(refineLevel):
+            rElems = list(range(len(amrMesh.markedElems)))
+            amrMesh.refine(rElems)
+        amrMesh.output_to_top('Refined_mesh.top')
+
+        from MeshQual import Mesh
+        tet_mesh = Mesh('Refined_mesh.top')
+        AR = tet_mesh.AR
+        tet_mesh.plot()
+
 
 
 
