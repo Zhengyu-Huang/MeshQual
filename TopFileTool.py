@@ -18,6 +18,7 @@ def read_tet(mshfile):
 
     nodes = []
     elems = []
+    boundaries = []
 
     print('Reading mesh ...')
 
@@ -41,9 +42,21 @@ def read_tet(mshfile):
         elems.append(elem)
         line = file.readline()
 
+    #todo assume all boundaries are inletfixedSurface
+    # Read Boundaries
+    line = file.readline()
+    while line:
+        data = line.split()
+        if data[0] == 'Elements':
+            break;
+        tri = list(map(int, data[2:5]))
+        tri = [x - 1 for x in tri]  # fixed top file 1-based index
+        boundaries.append(tri)
+        line = file.readline()
+
     file.close()
 
-    return nodes, elems
+    return nodes, elems, boundaries
 
 def write_tet(nodes,elems, boundaries, mshfile = 'domain.top'):
     '''
@@ -53,7 +66,9 @@ def write_tet(nodes,elems, boundaries, mshfile = 'domain.top'):
     :param mshfile: top file name
     :param nodes: a list of node coordinates
     :param elems: a list of elems node number
+    :param boundaries: a list of several lists, each sublist is a list of boundary triangle node numbers
     '''
+    #todo assume all boundaries are inletfixedSurface
     file = open(mshfile, 'w')
     nNodes,nElems = len(nodes), len(elems)
 
@@ -65,15 +80,12 @@ def write_tet(nodes,elems, boundaries, mshfile = 'domain.top'):
     for nE in range(nElems):
         file.write('%d  %d  %d  %d  %d  %d\n'%(nE + 1, 5, elems[nE][0] + 1, elems[nE][1] + 1, elems[nE][2] + 1,elems[nE][3] + 1))
 
-    nBound = len(boundaries)
-    for nB in range(nBound):
-        file.write('Elements InletFiexedSurface using FluidNodes\n')
-        boundary = boundaries[nB]
-        nTris = len(boundary)
 
-        for nT in range(nTris):
-            nE += 1
-            file.write('%d  %d  %d  %d  %d\n' % (nE, 4, boundary[nT][0] + 1, boundary[nT][1] + 1, boundary[nT][2] + 1))
+    file.write('Elements InletFixedSurface using FluidNodes\n')
+    nTris = len(boundaries)
+    for nT in range(nTris):
+        nE += 1
+        file.write('%d  %d  %d  %d  %d\n' % (nE, 4, boundaries[nT][0] + 1, boundaries[nT][1] + 1, boundaries[nT][2] + 1))
 
     file.close()
 

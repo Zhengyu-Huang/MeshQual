@@ -82,46 +82,46 @@ class KuhnSimplex:
 
     def create_boundaries(self):
         nx, ny, nz = self.nx, self.ny, self.nz
-        tri = [[],[],[],[],[],[]]
+        tri = []
         # bottom
         for j in range(ny - 1):
             for i in range(nx - 1):
                 k = 0
-                tri[0].append([self._node_id(i, j, k), self._node_id(i + 1, j, k), self._node_id(i + 1, j + 1, k)])
-                tri[0].append([self._node_id(i, j, k), self._node_id(i + 1, j + 1, k), self._node_id(i, j + 1, k)])
+                tri.append([self._node_id(i, j, k), self._node_id(i + 1, j, k), self._node_id(i + 1, j + 1, k)])
+                tri.append([self._node_id(i, j, k), self._node_id(i + 1, j + 1, k), self._node_id(i, j + 1, k)])
 
 
         # top
         for j in range(ny - 1):
             for i in range(nx - 1):
                 k = nz - 1
-                tri[1].append([self._node_id(i, j, k), self._node_id(i + 1, j, k), self._node_id(i + 1, j + 1, k)])
-                tri[1].append([self._node_id(i, j, k), self._node_id(i + 1, j + 1, k), self._node_id(i, j + 1, k)])
+                tri.append([self._node_id(i, j, k), self._node_id(i + 1, j, k), self._node_id(i + 1, j + 1, k)])
+                tri.append([self._node_id(i, j, k), self._node_id(i + 1, j + 1, k), self._node_id(i, j + 1, k)])
 
         # left
         for k in range(nz - 1):
             for j in range(ny - 1):
                 i = 0
-                tri[2].append([self._node_id(i, j, k), self._node_id(i , j + 1, k),     self._node_id(i, j + 1, k + 1)])
-                tri[2].append([self._node_id(i, j, k), self._node_id(i , j + 1, k + 1), self._node_id(i, j , k + 1)])
+                tri.append([self._node_id(i, j, k), self._node_id(i , j + 1, k),     self._node_id(i, j + 1, k + 1)])
+                tri.append([self._node_id(i, j, k), self._node_id(i , j + 1, k + 1), self._node_id(i, j , k + 1)])
         # right
         for k in range(nz - 1):
             for j in range(ny - 1):
                 i = nx - 1
-                tri[3].append([self._node_id(i, j, k), self._node_id(i, j + 1, k), self._node_id(i, j + 1, k + 1)])
-                tri[3].append([self._node_id(i, j, k), self._node_id(i, j + 1, k + 1), self._node_id(i, j, k + 1)])
+                tri.append([self._node_id(i, j, k), self._node_id(i, j + 1, k), self._node_id(i, j + 1, k + 1)])
+                tri.append([self._node_id(i, j, k), self._node_id(i, j + 1, k + 1), self._node_id(i, j, k + 1)])
         # front
         for k in range(nz - 1):
             for i in range(nx - 1):
                 j = 0
-                tri[4].append([self._node_id(i, j, k), self._node_id(i, j , k + 1), self._node_id(i + 1, j, k + 1)])
-                tri[4].append([self._node_id(i, j, k), self._node_id(i + 1, j, k + 1), self._node_id(i + 1, j, k)])
+                tri.append([self._node_id(i, j, k), self._node_id(i, j , k + 1), self._node_id(i + 1, j, k + 1)])
+                tri.append([self._node_id(i, j, k), self._node_id(i + 1, j, k + 1), self._node_id(i + 1, j, k)])
         # back
         for k in range(nz - 1):
             for i in range(nx - 1):
                 j = ny - 1
-                tri[5].append([self._node_id(i, j, k), self._node_id(i, j, k + 1), self._node_id(i + 1, j, k + 1)])
-                tri[5].append([self._node_id(i, j, k), self._node_id(i + 1, j, k + 1), self._node_id(i + 1, j, k)])
+                tri.append([self._node_id(i, j, k), self._node_id(i, j, k + 1), self._node_id(i + 1, j, k + 1)])
+                tri.append([self._node_id(i, j, k), self._node_id(i + 1, j, k + 1), self._node_id(i + 1, j, k)])
 
 
         return tri
@@ -137,8 +137,8 @@ class KuhnSimplex:
 
 
 if __name__ == '__main__':
-    x = [1,2,4,5,6]
-    y = [3,4,5,6,7]
-    z = [6,7,8,9]
+    x = [0, 1, 2, 4]
+    y = [0, 3, 4, 5]
+    z = [0, 2, 6, 7]
     simpleKuhnSimplex = KuhnSimplex(x,y,z)
     simpleKuhnSimplex.write_topfile()

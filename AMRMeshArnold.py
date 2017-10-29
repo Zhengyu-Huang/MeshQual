@@ -3,7 +3,7 @@ import operator
 import matplotlib.pyplot as plt
 import copy
 import TopFileTool
-
+from Utility import *
 
 '''
 Implement the algorithm in
@@ -12,21 +12,6 @@ Arnold, Douglas N., Arup Mukherjee, and Luc Pouly.
 SIAM Journal on Scientific Computing 22.2 (2000): 431-448.
 '''
 
-
-
-def pair_sort(a,b):
-    return (a,b) if a < b else (b,a)
-
-def inside_tet(xyz,point):
-
-    for i in range(4):
-        n0,n1,n2 = [n for n in range(4) if n != i]
-        alpha = np.dot(xyz[n0, :] - xyz[i, :], np.cross(xyz[n1, :] - xyz[i, :], xyz[n2, :] - xyz[i, :]))/\
-                np.dot(xyz[n0, :] - point, np.cross(xyz[n1, :] - point, xyz[n2, :] - point))
-        if(alpha < 0):
-            return False
-
-    return True
 
 class MarkedTet():
     def __init__(self, nodes,  faceEdges, flag):
@@ -133,7 +118,7 @@ class AmrMeshArnold():
 
         :param mshfile:
         '''
-        nodes,initElems = TopFileTool.read_tet(mshfile)
+        nodes,initElems,_ = TopFileTool.read_tet(mshfile)
 
         self.nodes = nodes
         self.initElems = initElems
@@ -314,8 +299,8 @@ class AmrMeshArnold():
         elems = []
         for i in range(len(markedElems)):
             elems.append(markedElems[i].nodes)
-
-        TopFileTool.write_tet(mshfile,nodes,elems)
+        #todo no boundaries
+        TopFileTool.write_tet(nodes,elems, [], mshfile)
 
 
 
@@ -340,7 +325,7 @@ class AmrMeshArnold():
 
 
 if __name__ == '__main__':
-    test = 1
+    test = 2
     if(test == 0):
         amrMesh = AmrMeshArnold('Trirectangular_tet_mesh.top')
         amrMesh.refine([0])
@@ -364,8 +349,20 @@ if __name__ == '__main__':
         tet_mesh = Mesh('cube.top')
         AR = tet_mesh.AR
         tet_mesh.plot()
+    elif(test == 2):
+        print('AMR Mesh Maubach')
+        amrMesh = AmrMeshArnold('domain.top')
+        refineLevel = 50
+        singularity = np.array([2.3,0.3,0.4])
+        for i in range(refineLevel):
+            rElems = amrMesh.find(singularity)
+            amrMesh.refine(rElems)
+        amrMesh.output_to_top('Refined_mesh.top')
 
-
+        from MeshQual import Mesh
+        tet_mesh = Mesh('Refined_mesh.top')
+        AR = tet_mesh.AR
+        tet_mesh.plot()
 
 
 

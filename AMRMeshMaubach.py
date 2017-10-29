@@ -1,7 +1,5 @@
-import numpy as np
-import operator
-import copy
 import TopFileTool
+from Utility import *
 
 
 '''
@@ -22,96 +20,58 @@ SIAM Journal on Scientific Computing 16.1 (1995): 210-227.
 
 
 
-def pair_sort(a,b):
-    return (a,b) if a < b else (b,a)
 
-def inside_tet(xyz,point):
-
-    for i in range(4):
-        n0,n1,n2 = [n for n in range(4) if n != i]
-        alpha = np.dot(xyz[n0, :] - xyz[i, :], np.cross(xyz[n1, :] - xyz[i, :], xyz[n2, :] - xyz[i, :]))/\
-                np.dot(xyz[n0, :] - point, np.cross(xyz[n1, :] - point, xyz[n2, :] - point))
-        if(alpha < 0):
-            return False
-
-    return True
 
 class MarkedTet():
-    def __init__(self, nodes, type):
+    def __init__(self, nn, type, bFlag = False):
         '''
-        :param nodes: n0,n1,n2,n3
-        :param refEdge: MAKE SURE the refine edge is (n0,n1)
-        :param faceEdges: (a0,b0),(a1,b1),(a2,b2),(a3,b3) and  (ai,bi) corresponding to face not contain ni
-        :param flag: element flag 0 or 1
-        MAKE SURE the edge pair (a,b) must satisfy a < b
-        :return:
+        :param nn: n0,n1,n2,n3
+        :param type: element flag 0 , 1,...,d-1
+
+        constructor for markedTet
+        nn = [n0, n1, n2, n3]
+        type = gam
+        bFlag: boundary flag, False: if it is not on the boundary; True: it is potentially on the boundary,
+        it can also not be on the boundary
         '''
-        self.nodes = nodes
+        self.nn = nn
         self.type = type
-    def get_nodes(self):
-        return self.nodes
+        self.bFlag = bFlag
+
     def get_ref_edge(self):
-        return self.nodes[0],self.nodes[1]
+        nn = self.nn
+        return [nn[0], nn[-1]]
+
+    def get_cut_face(self):
+        nn = self.nn
+        return [[nn[0],nn[1],nn[-1]],[nn[0],nn[2],nn[-1]]]
+
     def get_opposite_edge(self):
-        return self.nodes[2],self.nodes[3]
+        nn = self.nn
+        return [nn[1],nn[2]]
 
 
-    def bisect_tet(self,n):
+    def bisect_tet(self,n, Flag = False):
         '''
         bisect the tet
         :param n: new node number
         :return: return two marked tet
+        bisect the tet into 2
+        T = (z0,z1 ... zd)_g
+        s1(T) = (z0, y, z1,..., z_g, z_{g+1},..., z_{d-1})_{g+1} mod d
+        s2(T) = (z0, y, z1,..., z_g, z_{d-1},..., z_{g+1})_{g+1} mod d
         '''
         type = self.type
+        nn = self.nn
+        d = 3 # the dimension of the problem
+
         nodes =[[],[]]
-        nodes[0] = nn[0] , n, nn[1:type + 1] ,nn[type + 1, d - 1]
-        nodes[1] = nn[-1], n, nn[1:type + 1], nn[d - 1 : type + 1]
-        for i in range(2):
-            #tet i is the tet,  ni, n, n2, n3
+        nodes[0] = [nn[0] , n, *nn[1:d]]
+        nodes[1] = [nn[-1], n, *nn[1:type + 1], *nn[d - 1 : type: -1]]
 
-            a,b = self.faceEdges[1-i]
-            #find the other node on the inherited face
-            for val in [self.nodes[i],self.nodes[2],self.nodes[3]]:
-                if val not in self.faceEdges[1 - i]:
-                    c = val
-                    break
-
-            nodes.append([a, b, c, n])
+        return MarkedTet(nodes[0],(type+1)%d, Flag),MarkedTet(nodes[1],(type+1)%d, Flag)
 
 
-            if type == 'Pf':
-                # for coplanar, we know the new node is either a nor b
-                faceEdges[i][(0 if self.nodes[i] == a else 1)] = pair_sort(n,nf)
-
-            flag.append( 1 if type == 'Pu' else 0)
-
-
-
-        return MarkedTet(nodes[0],faceEdges[0],flag[0]),MarkedTet(nodes[1],faceEdges[1],flag[1])
-
-    def get_type(self):
-        '''
-        :return: the type of the element, if the type is Pf, also return the node one the the
-        coplanar face, but not on the refinement edge
-        '''
-
-
-        faceEdgeNodes = set()
-        for e in self.faceEdges:
-            for i in range(2):
-                faceEdgeNodes.add(e[i])
-        coplanar = False if len(faceEdgeNodes) == 4 else True
-
-        nf = -1
-        if(coplanar):
-            for n in faceEdgeNodes:
-                if n != self.nodes[0] and n != self.nodes[1]:
-                    nf = n
-                    break
-            #it is Pf if flag is set, otherwise Pu
-            return ('Pf', nf)  if self.flag == 1 else ('Pu',nf)
-        else:
-            return 'AOM',nf
 
 
 
@@ -134,18 +94,17 @@ class AmrMeshMaubach():
 
         :param mshfile:
         '''
-        nodes,initElems = TopFileTool.read_tet(mshfile)
+        nodes,initElems, initBoundaries = TopFileTool.read_tet(mshfile)
 
         self.nodes = nodes
         self.initElems = initElems
 
         #build dictionary edge->midNode
-
         self._build_mid_node()
+
         self._build_marked_elems()
 
-
-
+        self._build_boundary_tris(initBoundaries)
 
 
     def _build_mid_node(self):
@@ -165,60 +124,43 @@ class AmrMeshMaubach():
         self.midNode = midNode
 
 
-    def _max_pair(self,nodes,edgeSort):
-        '''
-        find the edge that has maximal edgeSort number
-        :param nodes: 3 nodes forming triangle or 4 nodes forming tetrahedron
-        :param edgeSort: a dictionary maps edge to its value
-        :return: the edge that has maximal value
-        '''
-        maxLenId = -1
-        nNodes = len(nodes)
-        n0,n1 = -1,-1
-        for i in range(nNodes):
-            for j in range(i + 1, nNodes):
-                if(edgeSort[pair_sort(nodes[i], nodes[j])] > maxLenId):
-                    n0,n1 = pair_sort(nodes[i], nodes[j])
-                    maxLenId = edgeSort[pair_sort(nodes[i], nodes[j])]
-        return n0,n1,maxLenId
-
     def _build_marked_elems(self):
         '''
-        This function should only be called in the class constructor after the _buildMidNode,
-        it uses initElems to build marked elements
-
-        Strictly order the edges of the mesh in an arbitrary but fixed manner,
-        for example, by length with a well-defined tie-breaking rule. Then choose the maximal
-        edge of each tetrahedron as its refinement edge and the maximal edge of each face as
-        its marked edge. Unset the flag on all tetrahedra.
+        This function should only be called in the class constructor, it uses initElems
+        to initialize marked elements
         '''
-        nodes = self.nodes
-        edgeSort = copy.deepcopy(self.midNode)
-        nEdge = len(edgeSort)
-        for edgePair in edgeSort:
-            n0,n1 = np.array(nodes[edgePair[0]]),np.array(nodes[edgePair[1]])
-            edgeSort[edgePair] = np.linalg.norm(n0 - n1)
-
-        edgeSortList = sorted(edgeSort.items(), key=operator.itemgetter(1)) #now edge Sort is a list
-
-        for i in range(nEdge):
-            edgeSort[(edgeSortList[i][0])] = i
-
-        markedElems = []
         initElems = self.initElems
+        markedElems = []
+
         for ele in initElems:
-            #find the max edge in the elem
-
-            n0,n1,_ = self._max_pair(ele,edgeSort)
-            n2,n3 = [n for n in ele if n not in [n0,n1]]
-            a0,b0,_ = self._max_pair([n1,n2,n3],edgeSort)
-            a1,b1,_ = self._max_pair([n0,n2,n3],edgeSort)
-
-            #find the max edge on the faces
-            markedElems.append(MarkedTet([n0,n1,n2,n3],  [(a0,b0),(a1,b1),(n0,n1),(n0,n1)], 0))
-
+            markedElems.append(MarkedTet([ele[0], ele[1], ele[2], ele[3]], 0))
 
         self.markedElems = markedElems
+
+    def _build_boundary_tris(self, initBoundaries):
+        '''
+        This function should only be called in the class constructor, it uses initElems
+        to initialize marked elements
+        '''
+        boundaries = set()
+        for i,j,k in initBoundaries:
+            boundaries.add(triplet_sort(i,j,k))
+        self.boundaries = boundaries
+
+    def _update_boundary_eles(self):
+        '''
+        This function should only be called in the class constructor, it uses initElems
+        and boundaries to update the boundary flag in marked elements
+        '''
+        markedElems = self.markedElems
+        boundaries = self.boundaries
+        for e in markedElems:
+
+            nn = e.nn
+            if((triplet_sort(nn[0],nn[1],nn[2]) in boundaries) or (triplet_sort(nn[0],nn[1],nn[3]) in boundaries) or
+               (triplet_sort(nn[0],nn[2],nn[3]) in boundaries) or (triplet_sort(nn[1],nn[2],nn[3]) in boundaries)):
+                e.bFlag = True
+
 
     def bisection(self, rElems):
         '''
@@ -228,32 +170,44 @@ class AmrMeshMaubach():
         nodes = self.nodes
         markedElems = self.markedElems
         midNode = self.midNode
+        boundaries = self.boundaries
 
         for e in rElems:
             elem = markedElems[e]
-            newNode = midNode[elem.get_ref_edge()]
+            newNode = midNode[pair_sort(*elem.get_ref_edge())]
             if(newNode == -1):
-                #The edge is cut first time, add new nodes,
+                #The edge is cut first time, add a new node(the midpoint),
                 newNode = len(nodes)
-                n0,n1 = elem.get_ref_edge()
-                y = [(nodes[n0][0] + nodes[n1][0]) / 2.0, (nodes[n0][1] + nodes[n1][1]) / 2.0,
-                     (nodes[n0][2] + nodes[n1][2]) / 2.0]
+                n0,nd = elem.get_ref_edge()
+                y = [(nodes[n0][0] + nodes[nd][0]) / 2.0, (nodes[n0][1] + nodes[nd][1]) / 2.0,
+                     (nodes[n0][2] + nodes[nd][2]) / 2.0]
                 nodes.append(y)
                 #mark the refined edge's midpoint
-                midNode[elem.get_ref_edge()] = newNode
+                midNode[pair_sort(*elem.get_ref_edge())] = newNode
 
                 #add new edge, for there are 4 new edges
-                for n in elem.nodes:
+                for n in elem.nn:
                     midNode[pair_sort(n, newNode)] = -1
 
             else:
-                #add new edge, for there are potentially 2 new edges on the cut faces
+                #add new edges, for there are potentially 2 new edges on the cut faces
                 for n in  elem.get_opposite_edge():
                     if pair_sort(n, newNode) not in midNode:
                         midNode[pair_sort(n, newNode)] = -1
 
+            # update boundary faces, for boundary elements
+            if(elem.bFlag):
+                #the element is potentially on the boundary
+                cutFace = elem.cut_face()
+                for i,j,k in cutFace:
+                    if triplet_sort(i,j,k) in boundaries:
+                        boundaries.remove(triplet_sort(i,j,k))
+                        boundaries.add(triplet_sort(i, j, newNode))
+                        boundaries.add(triplet_sort(j, k, newNode))
+
+
             # add new elements
-            elem0, elem1 = elem.bisect_tet(newNode)
+            elem0, elem1 = elem.bisect_tet(newNode, elem.bFlag)
             markedElems[e] = elem0
             markedElems.append(elem1)
 
@@ -266,10 +220,10 @@ class AmrMeshMaubach():
         '''
         elem = self.markedElems[e]
         midNode = self.midNode
-        nodes = elem.get_nodes()
+        nn = elem.nn
         for i in range(4):
             for j in range(i+1,4):
-                if midNode[pair_sort(nodes[i],nodes[j])] >= 0:
+                if midNode[pair_sort(nn[i],nn[j])] >= 0:
                     return True
 
 
@@ -314,9 +268,9 @@ class AmrMeshMaubach():
         markedElems = self.markedElems
         elems = []
         for i in range(len(markedElems)):
-            elems.append(markedElems[i].nodes)
-
-        TopFileTool.write_tet(mshfile,nodes,elems)
+            elems.append(markedElems[i].nn)
+        boundaries = list(self.boundaries)
+        TopFileTool.write_tet(nodes,elems, boundaries, mshfile)
 
 
 
@@ -332,7 +286,7 @@ class AmrMeshMaubach():
         rElems = []
         for e in range(nElems):
             ele = markedElems[e]
-            xyz = np.array([nodes[ele.nodes[0]],nodes[ele.nodes[1]],nodes[ele.nodes[2]],nodes[ele.nodes[3]]])
+            xyz = np.array([nodes[ele.nn[0]],nodes[ele.nn[1]],nodes[ele.nn[2]],nodes[ele.nn[3]]])
             if inside_tet(xyz, point):
                 rElems.append(e)
         return rElems
@@ -342,6 +296,19 @@ class AmrMeshMaubach():
 
 if __name__ == '__main__':
     print('AMR Mesh Maubach')
+    amrMesh = AmrMeshMaubach('domain.top')
+    refineLevel = 50
+    singularity = np.array([2.3,0.3,0.4])
+    for i in range(refineLevel):
+        rElems = amrMesh.find(singularity)
+        amrMesh.refine(rElems)
+    amrMesh.output_to_top('Refined_mesh.top')
+
+    from MeshQual import Mesh
+    tet_mesh = Mesh('Refined_mesh.top')
+    AR = tet_mesh.AR
+    tet_mesh.plot()
+
 
 
 

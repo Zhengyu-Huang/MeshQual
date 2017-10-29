@@ -120,7 +120,7 @@ def _tetrahedron_quantities(nodes):
 
 class Mesh:
     def __init__(self,mshfile):
-        nodes, elems = TopFileTool.read_tet(mshfile)
+        nodes, elems,_ = TopFileTool.read_tet(mshfile)
         self.nodes = np.array(nodes, dtype = float)
         self.elems = np.array(elems,dtype = int)
 
