@@ -1,16 +1,15 @@
-__author__ = 'zhengyuh'
 import numpy as np
-from TopFileTool import write_tet
+from TopFileTool import *
 
 
 class KuhnSimplex:
-    def __init__(self,x,y,z, boundaryNames):
-        self.x,  self.y,  self.z = x,y,z
-        self.nx, self.ny, self.nz = len(x), len(y), len(z)
-        self.nodes = self.create_nodes()
-        self.eles = self.create_tet()
-        self.boundaries = self.create_boundaries()
-        self.boundaryNames = boundaryNames
+    def __init__(self, topFile):
+        '''
+
+        :param topFile:
+
+        '''
+        nodes, elems, boundaryNames, boundaries = read_tet(topFile)
 
 
     def _node_id(self,ix,iy,iz):
@@ -91,7 +90,7 @@ class KuhnSimplex:
     def create_boundaries(self):
         nx, ny, nz = self.nx, self.ny, self.nz
         tri = [[],[],[],[],[],[]]
-        # bottom z = zmin
+        # bottom
         for j in range(ny - 1):
             for i in range(nx - 1):
                 k = 0
@@ -99,32 +98,32 @@ class KuhnSimplex:
                 tri[0].append([self._node_id(i, j, k), self._node_id(i + 1, j + 1, k), self._node_id(i, j + 1, k)])
 
 
-        # top  z = zmax
+        # top
         for j in range(ny - 1):
             for i in range(nx - 1):
                 k = nz - 1
                 tri[1].append([self._node_id(i, j, k), self._node_id(i + 1, j, k), self._node_id(i + 1, j + 1, k)])
                 tri[1].append([self._node_id(i, j, k), self._node_id(i + 1, j + 1, k), self._node_id(i, j + 1, k)])
 
-        # left x = xmin
+        # left
         for k in range(nz - 1):
             for j in range(ny - 1):
                 i = 0
                 tri[2].append([self._node_id(i, j, k), self._node_id(i , j + 1, k),     self._node_id(i, j + 1, k + 1)])
                 tri[2].append([self._node_id(i, j, k), self._node_id(i , j + 1, k + 1), self._node_id(i, j , k + 1)])
-        # right x = xmax
+        # right
         for k in range(nz - 1):
             for j in range(ny - 1):
                 i = nx - 1
                 tri[3].append([self._node_id(i, j, k), self._node_id(i, j + 1, k), self._node_id(i, j + 1, k + 1)])
                 tri[3].append([self._node_id(i, j, k), self._node_id(i, j + 1, k + 1), self._node_id(i, j, k + 1)])
-        # front y = ymin
+        # front
         for k in range(nz - 1):
             for i in range(nx - 1):
                 j = 0
                 tri[4].append([self._node_id(i, j, k), self._node_id(i, j , k + 1), self._node_id(i + 1, j, k + 1)])
                 tri[4].append([self._node_id(i, j, k), self._node_id(i + 1, j, k + 1), self._node_id(i + 1, j, k)])
-        # back y = ymax
+        # back
         for k in range(nz - 1):
             for i in range(nx - 1):
                 j = ny - 1
@@ -138,8 +137,7 @@ class KuhnSimplex:
         nodes = self.nodes
         eles = self.eles
         boundaries = self.boundaries
-        boundaryNames = self.boundaryNames
-        write_tet(nodes, eles, boundaryNames, boundaries)
+        write_tet(nodes, eles, boundaries)
 
 
     def plot_mesh(self):
@@ -201,8 +199,7 @@ def parachute3D():
     zr = geomspace(52.0, 150, dzc, zRatio, False)
     z = [*reversed(zl), *zc, *zr]
 
-    boundaryNames = ['InletfixedSurface' for i in range(6)]
-    simpleKuhnSimplex = KuhnSimplex(x,y,z, boundaryNames)
+    simpleKuhnSimplex = KuhnSimplex(x,y,z)
 
     print('Writing to top file')
     simpleKuhnSimplex.write_topfile()

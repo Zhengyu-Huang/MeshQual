@@ -18,6 +18,7 @@ def read_tet(mshfile):
 
     nodes = []
     elems = []
+    boundaryNames = []
     boundaries = []
 
     print('Reading mesh ...')
@@ -42,23 +43,27 @@ def read_tet(mshfile):
         elems.append(elem)
         line = file.readline()
 
-    #todo assume all boundaries are inletfixedSurface
     # Read Boundaries
-    line = file.readline()
     while line:
-        data = line.split()
-        if data[0] == 'Elements':
-            break;
-        tri = list(map(int, data[2:5]))
-        tri = [x - 1 for x in tri]  # fixed top file 1-based index
-        boundaries.append(tri)
+        boundary = []
+        boundaryName = data[1]
         line = file.readline()
+        while line:
+            data = line.split()
+            if data[0] == 'Elements':
+                break;
+            tri = list(map(int, data[2:5]))
+            tri = [x - 1 for x in tri]  # fixed top file 1-based index
+            boundary.append(tri)
+            line = file.readline()
+        boundaries.append(boundary)
+        boundaryNames.append(boundaryName)
 
     file.close()
 
-    return nodes, elems, boundaries
+    return nodes, elems, boundaryNames, boundaries
 
-def write_tet(nodes,elems, boundaries, mshfile = 'domain.top'):
+def write_tet(nodes,elems, boundaryNames, boundaries, mshfile = 'domain.top'):
     '''
     This function writes top file, mshfile, node coordinates are  in the list nodes,
     and element node numbers are in elems(the node number is 0-based index instead of top file'
@@ -80,12 +85,14 @@ def write_tet(nodes,elems, boundaries, mshfile = 'domain.top'):
     for nE in range(nElems):
         file.write('%d  %d  %d  %d  %d  %d\n'%(nE + 1, 5, elems[nE][0] + 1, elems[nE][1] + 1, elems[nE][2] + 1,elems[nE][3] + 1))
 
-
-    file.write('Elements InletFixedSurface using FluidNodes\n')
-    nTris = len(boundaries)
-    for nT in range(nTris):
-        nE += 1
-        file.write('%d  %d  %d  %d  %d\n' % (nE, 4, boundaries[nT][0] + 1, boundaries[nT][1] + 1, boundaries[nT][2] + 1))
+    nBounds = len(boundaries)
+    for i in range(nBounds):
+        file.write('Elements %s using FluidNodes\n' %boundaryNames[i])
+        boundary = boundaries[i]
+        nTris = len(boundary)
+        for nT in range(nTris):
+            nE += 1
+            file.write('%d  %d  %d  %d  %d\n' % (nE, 4, boundary[nT][0] + 1, boundary[nT][1] + 1, boundary[nT][2] + 1))
 
     file.close()
 
