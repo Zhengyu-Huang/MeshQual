@@ -81,13 +81,14 @@ def write_tet(nodes,elems, boundaryNames, boundaries, mshfile = 'domain.top'):
     for nN in range(nNodes):
         file.write('%d  %.12f  %.12f  %.12f\n'%(nN + 1, nodes[nN][0],nodes[nN][1],nodes[nN][2]))
 
-    file.write('Elements FluidMesh using FluidNodes\n')
+    file.write('Elements Volume_0 using FluidNodes\n')
     for nE in range(nElems):
         file.write('%d  %d  %d  %d  %d  %d\n'%(nE + 1, 5, elems[nE][0] + 1, elems[nE][1] + 1, elems[nE][2] + 1,elems[nE][3] + 1))
 
     nBounds = len(boundaries)
     for i in range(nBounds):
-        file.write('Elements %s using FluidNodes\n' %boundaryNames[i])
+
+        file.write('Elements %s using FluidNodes\n' %(boundaryNames[i] + '_' + str(i+1)))
         boundary = boundaries[i]
         nTris = len(boundary)
         for nT in range(nTris):

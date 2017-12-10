@@ -211,15 +211,29 @@ def naca2D():
     x = np.linspace(-1.0, 2.0, 40)
     y = np.linspace(-0.5, 0.5, 40)
     z = [0.0, 0.01, 0.02, 0.03]
-
-    simpleKuhnSimplex = KuhnSimplex(x,y,z)
+    boundaryNames=['SymmetrySurface','SymmetrySurface','InletFixedSurface',
+                   'InletFixedSurface','InletFixedSurface','InletFixedSurface']
+    simpleKuhnSimplex = KuhnSimplex(x,y,z,boundaryNames)
 
     print('Writing to top file')
     simpleKuhnSimplex.write_topfile()
 
 
+def shockTube():
+    #Important the name of these boundaries are important
+    x = np.linspace(-2.0, 2.0, 40)
+    y = np.linspace(-0.5, 0.5, 10)
+    z = np.linspace(-0.5, 0.5, 10)
+    boundaryNames = ['SymmetrySurface', 'SymmetrySurface', 'InletFixedSurface',
+                     'InletFixedSurface', 'SymmetrySurface', 'SymmetrySurface']
+    simpleKuhnSimplex = KuhnSimplex(x, y, z, boundaryNames)
+
+    print('Writing to top file')
+    simpleKuhnSimplex.write_topfile()
+
 if __name__ == '__main__':
-    naca2D()
+    #naca2D()
+    shockTube()
     # x = [1,2]
     # y = [4,5]
     # z = [7,8]

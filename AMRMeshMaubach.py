@@ -94,7 +94,7 @@ class AmrMeshMaubach():
 
         :param mshfile:
         '''
-        nodes,initElems, initBoundaries = TopFileTool.read_tet(mshfile)
+        nodes,initElems, initBoundaryNames, initBoundaries = TopFileTool.read_tet(mshfile)
 
         self.nodes = nodes
         self.initElems = initElems
@@ -143,8 +143,9 @@ class AmrMeshMaubach():
         to initialize marked elements
         '''
         boundaries = set()
-        for i,j,k in initBoundaries:
-            boundaries.add(triplet_sort(i,j,k))
+        for initBoundary in initBoundaries:
+            for i,j,k in initBoundary:
+                boundaries.add(triplet_sort(i,j,k))
         self.boundaries = boundaries
 
     def _update_boundary_eles(self):
