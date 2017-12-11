@@ -73,7 +73,7 @@ def write_tet(nodes,elems, boundaryNames, boundaries, mshfile = 'domain.top'):
     :param elems: a list of elems node number
     :param boundaries: a list of several lists, each sublist is a list of boundary triangle node numbers
     '''
-    #todo assume all boundaries are inletfixedSurface
+
     file = open(mshfile, 'w')
     nNodes,nElems = len(nodes), len(elems)
 

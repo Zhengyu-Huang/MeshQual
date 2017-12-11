@@ -139,7 +139,7 @@ class KuhnSimplex:
         eles = self.eles
         boundaries = self.boundaries
         boundaryNames = self.boundaryNames
-        write_tet(nodes, eles, boundaryNames, boundaries)
+        write_tet(nodes, eles, boundaryNames, boundaries, outputfile)
 
 
     def plot_mesh(self):
@@ -221,9 +221,9 @@ def naca2D():
 
 def shockTube():
     #Important the name of these boundaries are important
-    x = np.linspace(-2.0, 2.0, 40)
-    y = np.linspace(-0.5, 0.5, 10)
-    z = np.linspace(-0.5, 0.5, 10)
+    x = np.linspace(-2.0, 2.0, 20)
+    y = np.linspace(-0.5, 0.5, 5)
+    z = np.linspace(-0.5, 0.5, 5)
     boundaryNames = ['SymmetrySurface', 'SymmetrySurface', 'InletFixedSurface',
                      'InletFixedSurface', 'SymmetrySurface', 'SymmetrySurface']
     simpleKuhnSimplex = KuhnSimplex(x, y, z, boundaryNames)
