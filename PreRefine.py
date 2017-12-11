@@ -6,7 +6,7 @@ from TopFileTool import write_tet, read_tet
 from Utility import pair_sort,triplet_sort
 
 class PreRefine:
-    def __init__(self,inputfile = 'domain.top',outputfile = 'domain1.top'):
+    def __init__(self,inputfile,outputfile):
         self.nodes, self.eles, self.boundaryNames, self.boundaries = read_tet(inputfile)
         self._build_faces()
         self.refine()
@@ -87,12 +87,13 @@ class PreRefine:
 
 
 
-    def write_topfile(self, outputfile='domain.top'):
+    def write_topfile(self, outputfile):
         nodes = self.nodes
         eles = self.newElems
         boundaries = self.newBoundaries
         boundaryNames = self.boundaryNames
-        write_tet(nodes, eles, boundaryNames, boundaries)
+        write_tet(nodes, eles, boundaryNames, boundaries,outputfile)
+        print('Be careful, all these elements have tag = 2')
 
 
 

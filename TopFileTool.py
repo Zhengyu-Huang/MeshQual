@@ -96,4 +96,4 @@ def write_tet(nodes,elems, boundaryNames, boundaries, mshfile = 'domain.top'):
             file.write('%d  %d  %d  %d  %d\n' % (nE, 4, boundary[nT][0] + 1, boundary[nT][1] + 1, boundary[nT][2] + 1))
 
     file.close()
-
+    print('Write to top file, %d nodes and %d elements', len(nodes), len(elems))

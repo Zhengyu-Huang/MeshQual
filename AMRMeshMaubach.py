@@ -82,7 +82,7 @@ class MarkedTet():
 
 class AmrMeshMaubach():
 
-    def __init__(self, mshfile):
+    def __init__(self, mshfile,gam=0):
         '''
         nodes: a list of float[3], node coordinates
         midNode: map from edge pair (a,b) a<b,  to its midpoint id
@@ -98,11 +98,12 @@ class AmrMeshMaubach():
 
         self.nodes = nodes
         self.initElems = initElems
+        self.initBoundaryNames = initBoundaryNames
 
         #build dictionary edge->midNode
         self._build_mid_node()
 
-        self._build_marked_elems()
+        self._build_marked_elems(gam)
 
         self._build_boundary_tris(initBoundaries)
 
@@ -124,7 +125,7 @@ class AmrMeshMaubach():
         self.midNode = midNode
 
 
-    def _build_marked_elems(self):
+    def _build_marked_elems(self,gam=0):
         '''
         This function should only be called in the class constructor, it uses initElems
         to initialize marked elements
@@ -133,7 +134,7 @@ class AmrMeshMaubach():
         markedElems = []
 
         for ele in initElems:
-            markedElems.append(MarkedTet([ele[0], ele[1], ele[2], ele[3]], 0))
+            markedElems.append(MarkedTet([ele[0], ele[1], ele[2], ele[3]], gam))
 
         self.markedElems = markedElems
 
@@ -271,7 +272,8 @@ class AmrMeshMaubach():
         for i in range(len(markedElems)):
             elems.append(markedElems[i].nn)
         boundaries = list(self.boundaries)
-        TopFileTool.write_tet(nodes,elems, boundaries, mshfile)
+        initBoundaryNames = self.initBoundaryNames
+        TopFileTool.write_tet(nodes,elems, initBoundaryNames, boundaries, mshfile)
 
 
 
@@ -313,7 +315,7 @@ if __name__ == '__main__':
         tet_mesh.plot()
     elif(test == 1):
         print('Test conformity')
-        amrMesh = AmrMeshMaubach('domain.top')
+        amrMesh = AmrMeshMaubach('Naca.top',2)
         refineLevel = 4
         for i in range(refineLevel):
             rElems = list(range(len(amrMesh.markedElems)))
