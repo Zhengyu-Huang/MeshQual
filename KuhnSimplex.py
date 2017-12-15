@@ -221,9 +221,9 @@ def naca2D():
 
 def shockTube():
     #Important the name of these boundaries are important
-    x = np.linspace(-2.0, 2.0, 3)
-    y = np.linspace(-0.5, 0.5, 2)
-    z = np.linspace(-0.5, 0.5, 2)
+    x = np.linspace(-2.0, 2.0, 20)
+    y = np.linspace(-0.5, 0.5, 15)
+    z = np.linspace(-0.5, 0.5, 15)
     boundaryNames = ['SymmetrySurface', 'SymmetrySurface', 'InletFixedSurface',
                      'InletFixedSurface', 'SymmetrySurface', 'SymmetrySurface']
     simpleKuhnSimplex = KuhnSimplex(x, y, z, boundaryNames)

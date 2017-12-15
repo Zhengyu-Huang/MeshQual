@@ -243,17 +243,61 @@ class AmrMeshMaubach():
         return rElems
 
 
-    def refine(self, rElems):
+    def refine_by_elem(self, rElems):
         '''
         Refine mesh
         :param rElems: a list of int, for marked element ids to be refined
         :return:
         '''
-        print('Refining mesh...')
+        print('Refining mesh by elements...')
         while rElems:
             print('In Refining mesh loop, for %d tetrahedrons...' %(len(rElems)))
             self.bisection(rElems)
             rElems = self.check_conformity()
+
+
+    def refine_by_edge(self, rEdges):
+        '''
+        Refine mesh
+        :param rElems: a list of int, for marked element ids to be refined
+        :return:
+        '''
+        print('Refining mesh by edges...')
+        for i in range(100):
+            print('In Refine_by_edge loop %d' % (i))
+            rElems = self._edge_to_elems(rEdges)
+            if not rElems:
+                break
+            while rElems:
+                print('In Refining mesh loop, for %d tetrahedrons...' % (len(rElems)))
+                self.bisection(rElems)
+                rElems = self.check_conformity()
+
+
+
+    def _edge_to_elems(self, rEdges):
+        '''
+        :param rEdges: a set of edges, if the edge is not refined, add its neighbor elements
+        :return: a set containing all these neighbor elements, !!! the mesh should be conforming
+        !!! This function is very slow, build edge to element map first
+        '''
+        markedElems = self.markedElems
+        rElems = set()
+        #build the map from edge to element list
+        edgeToElems = {}
+        for ei in range(len(markedElems)):
+            ele = markedElems[ei]
+            nn = ele.nn
+            for edge in [pair_sort(nn[i],nn[j]) for i in range(4) for j in range(i + 1, 4)]:
+                    if edge in edgeToElems:
+                        edgeToElems[edge].append(ei)
+                    else:
+                        edgeToElems[edge] = [ei]
+
+        for e in rEdges:
+            if self.midNode[pair_sort(e[0],e[1])] == -1:
+                rElems |= set(edgeToElems[pair_sort(e[0],e[1])])
+        return rElems
 
 
     def coarsen(self):
@@ -271,9 +315,10 @@ class AmrMeshMaubach():
         elems = []
         for i in range(len(markedElems)):
             elems.append(markedElems[i].nn)
-        boundaries = list(self.boundaries)
-        initBoundaryNames = self.initBoundaryNames
-        TopFileTool.write_tet(nodes,elems, initBoundaryNames, boundaries, mshfile)
+        #Because the Simple Refinement code does not handle boundary name
+        boundaries = []
+        initBoundaryNames = []
+        TopFileTool.write_tet(nodes, elems, initBoundaryNames, boundaries, mshfile)
 
 
 
@@ -299,14 +344,14 @@ class AmrMeshMaubach():
 
 if __name__ == '__main__':
     print('AMR Mesh Maubach')
-    test = 1
+    test = 2
     if(test == 0):
         amrMesh = AmrMeshMaubach('domain.top')
         refineLevel = 50
         singularity = np.array([2.3,0.3,0.4])
         for i in range(refineLevel):
             rElems = amrMesh.find(singularity)
-            amrMesh.refine(rElems)
+            amrMesh.refine_by_elem(rElems)
         amrMesh.output_to_top('Refined_mesh.top')
 
         from MeshQual import Mesh
@@ -314,15 +359,34 @@ if __name__ == '__main__':
         AR = tet_mesh.AR
         tet_mesh.plot()
     elif(test == 1):
-        print('Test conformity')
+        print('Test conformity refine by elem')
         amrMesh = AmrMeshMaubach('Naca.top',2)
         refineLevel = 4
         for i in range(refineLevel):
             rElems = list(range(len(amrMesh.markedElems)))
-            amrMesh.refine(rElems)
+            amrMesh.refine_by_elem(rElems)
         amrMesh.output_to_top('Refined_mesh.top')
 
         from MeshQual import Mesh
+        tet_mesh = Mesh('Refined_mesh.top')
+        AR = tet_mesh.AR
+        tet_mesh.plot()
+
+
+    elif (test == 2):
+        print('Test conformity refine by edge')
+        amrMesh = AmrMeshMaubach('domain.top', 0)
+        refineLevel = 1
+        for i in range(refineLevel):
+            rEdges = set()
+            for ele in amrMesh.markedElems:
+                nn = ele.nn
+                rEdges |= set([pair_sort(nn[i], nn[j]) for i in range(4) for j in range(i + 1, 4)])
+            amrMesh.refine_by_edge(rEdges)
+        amrMesh.output_to_top('Refined_mesh.top')
+
+        from MeshQual import Mesh
+
         tet_mesh = Mesh('Refined_mesh.top')
         AR = tet_mesh.AR
         tet_mesh.plot()
