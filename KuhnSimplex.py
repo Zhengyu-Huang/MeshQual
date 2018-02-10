@@ -134,12 +134,12 @@ class KuhnSimplex:
 
         return tri
 
-    def write_topfile(self, outputfile = 'domain.top'):
+    def write_topfile(self, outputfile = 'domain.top', volFunc = lambda x: 0):
         nodes = self.nodes
         eles = self.eles
         boundaries = self.boundaries
         boundaryNames = self.boundaryNames
-        write_tet(nodes, eles, boundaryNames, boundaries, outputfile)
+        write_tet(nodes, eles, boundaryNames, boundaries, outputfile, volFunc)
 
 
     def plot_mesh(self):
@@ -203,7 +203,7 @@ def parachute3D():
     zr = geomspace(zcr, 150, dzc, zRatio, False)
     z = [*reversed(zl), *zc, *zr]
 
-    boundaryNames = ['InletfixedSurface' for i in range(6)]
+    boundaryNames = ['InletFixedSurface' for i in range(6)]
     simpleKuhnSimplex = KuhnSimplex(x,y,z, boundaryNames)
 
     print('Writing to top file')
@@ -234,6 +234,20 @@ def naca2D():
 
     print('Writing to top file')
     simpleKuhnSimplex.write_topfile()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 '''
 def parachute3D():
     # x direction, the parachute is in [-7.7235, 7.7235]
@@ -260,7 +274,7 @@ def parachute3D():
     zr = geomspace(zcr, 80, dzc, zRatio, False)
     z = [*reversed(zl), *zc, *zr]
 
-    boundaryNames = ['InletfixedSurface' for i in range(6)]
+    boundaryNames = ['InletFixedSurface' for i in range(6)]
     simpleKuhnSimplex = KuhnSimplex(x,y,z, boundaryNames)
 
     print('Writing to top file')
@@ -269,7 +283,7 @@ def parachute3D():
 
 
 
-def shockTube():
+def Tube():
     #Important the name of these boundaries are important
     x = np.linspace(-5.0, 5.0, 100)
     y = np.linspace(-0.2, 0.2, 4)
@@ -280,6 +294,19 @@ def shockTube():
 
     print('Writing to top file')
     simpleKuhnSimplex.write_topfile()
+
+def shockTube():
+    #Important the name of these boundaries are important
+    x = np.linspace(-5.0, 5.0, 400)
+    y = np.linspace(-0.2, 0.2, 4)
+    z = np.linspace(-0.2, 0.2, 4)
+    boundaryNames = ['SymmetrySurface', 'SymmetrySurface', 'InletFixedSurface',
+                     'OutletFixedSurface', 'SymmetrySurface', 'SymmetrySurface']
+    simpleKuhnSimplex = KuhnSimplex(x, y, z, boundaryNames)
+
+    print('Writing to top file')
+    simpleKuhnSimplex.write_topfile(volFunc=lambda xc: 0 if xc[0] < 1.0e-6 else 1)
+
 
 
 def uniform2D():
@@ -302,12 +329,90 @@ def uniform2D():
     simpleKuhnSimplex.write_topfile()
 
 
+def uniform3D():
+    # for sphere
+    x = np.linspace(-40.0, 80.0, 3*23)
+    y = np.linspace(-40.0, 40.0, 2*23)
+    z = np.linspace(-40.0, 40.0, 2*23)
+
+
+
+    boundaryNames=['InletFixedSurface','InletFixedSurface','InletFixedSurface',
+                   'InletFixedSurface','InletFixedSurface','InletFixedSurface']
+    simpleKuhnSimplex = KuhnSimplex(x,y,z,boundaryNames)
+
+    print('Writing to top file')
+    simpleKuhnSimplex.write_topfile()
+
+
+def sphere3D_trial1():
+    # x direction, the parachute is in [-7.7235, 7.7235]
+    # the fluid domain is [-150 150]
+    xcl, xcr, xcn = -2.0, 4.0, 52
+    xc = np.linspace(xcl, xcr, xcn)
+    dxc = (xcr - xcl) /(xcn - 1)
+    xRatio = 1.5
+    xl = geomspace(xcl, -40, -dxc, xRatio, False)
+    xr = geomspace(xcr, 80, dxc, xRatio, False)
+
+    x = [*reversed(xl), *xc, *xr]
+
+
+    # z direction, the parachute is in [35.7358, 39.2198]
+    # the fluid domain is [-100 200]
+    ycl, ycr, ycn = -2.0, 2.0, 35
+    yc = np.linspace(ycl, ycr, ycn)
+    dyc = (ycr - ycl) / (ycn - 1)
+    yRatio = 1.5
+    yl = geomspace(ycl, -40, -dyc, yRatio, False)
+    yr = geomspace(ycr, 40, dyc, yRatio, False)
+    y = [*reversed(yl), *yc, *yr]
+
+    z = y
+
+    boundaryNames = ['InletFixedSurface' for i in range(6)]
+    simpleKuhnSimplex = KuhnSimplex(x, y, z, boundaryNames)
+
+    print('Writing to top file')
+    simpleKuhnSimplex.write_topfile()
+
+def sphere3D():
+    # x direction, the parachute is in [-7.7235, 7.7235]
+    # the fluid domain is [-150 150]
+    xcl, xcr, xcn = -10.0, 20.0, 52
+    xc = np.linspace(xcl, xcr, xcn)
+    dxc = (xcr - xcl) /(xcn - 1)
+    xRatio = 1.2
+    xl = geomspace(xcl, -40, -dxc, xRatio, False)
+    xr = geomspace(xcr, 80, dxc, xRatio, False)
+
+    x = [*reversed(xl), *xc, *xr]
+
+
+    # z direction, the parachute is in [35.7358, 39.2198]
+    # the fluid domain is [-100 200]
+    ycl, ycr, ycn = -10.0, 10.0,35
+    yc = np.linspace(ycl, ycr, ycn)
+    dyc = (ycr - ycl) / (ycn - 1)
+    yRatio = 1.2
+    yl = geomspace(ycl, -40, -dyc, yRatio, False)
+    yr = geomspace(ycr, 40, dyc, yRatio, False)
+    y = [*reversed(yl), *yc, *yr]
+
+    z = y
+
+    boundaryNames = ['InletFixedSurface' for i in range(6)]
+    simpleKuhnSimplex = KuhnSimplex(x, y, z, boundaryNames)
+
+    print('Writing to top file')
+    simpleKuhnSimplex.write_topfile()
+
 if __name__ == '__main__':
     #uniform2D()
     #shockTube()
     #parachute3D()
     #uniform2D()
-    naca2D()
+    shockTube()
     # x = [1,2]
     # y = [4,5]
     # z = [7,8]

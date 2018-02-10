@@ -35,6 +35,8 @@ class simpleMesh:
 
         self._compute_volume()
 
+        print("wait")
+
 
 
 
@@ -99,7 +101,9 @@ class simpleMesh:
 
         print('gradient from least square is \n',gradient)
 
-        return np.dot(gradient[0,:] - gradient[1,:],xy[nc[0],:] - xy[nc[1],:])
+
+        e_c = self.e_c
+        return np.dot(gradient[0,:] - gradient[1,:],e_c)/(e_c[0]**2 + e_c[1]**2)
 
 
     def _ele_jacobian(self, e):
@@ -165,7 +169,8 @@ class simpleMesh:
 
         print('gradient from nodal galerkin is \n', gradient)
 
-        return np.dot(gradient[0, :] - gradient[1, :], xy[nc[0], :] - xy[nc[1], :])
+        e_c = self.e_c
+        return np.dot(gradient[0, :] - gradient[1, :],e_c)/(e_c[0]**2 + e_c[1]**2)
 
     def _hessian(self,i):
         '''
@@ -210,28 +215,29 @@ class simpleMesh:
 
         print('fem hessian at edge center is \n', hessian_c)
 
-        return np.dot(e_c, np.dot(hessian_c, e_c))
+        return np.dot(e_c, np.dot(hessian_c, e_c))/(e_c[0]**2 + e_c[1]**2)
 
 
 
 def fun(xy):
-    return xy[:,0]**3 + xy[:,1]**2
+    return 2*xy[:,0]**2 + 3*xy[:,1]**2  + xy[:,0]*xy[:,1] + 1
 
 def dfun(xy):
-    return 2*xy[:,0]**1
+    return [4*xy[:,0] + xy[:,1], 6*xy[:,1] + xy[:,0]]
 
 def ddfun(xy):
     x,y = xy
-    return np.array([[2.0, 0.0],[0.0, 2.0]])
+    return np.array([[4.0, 1.0],[1.0, 6.0]])
 
 
 
 if __name__ == "__main__":
 
     xy = np.array([[-0.5,0.5],[0.0, 0.5],[0.5,0.5],
-                   [-1.0,0.0],[-0.3,0.0],[0.2,0.0],[1.0,0.0],
+                   [-1.0,0.0],[-0.3,0.0],[0.3,0.0],[1.0,0.0],
                    [-0.5,-0.5],[0.0,-0.5],[0.6,-0.5]])
 
+    xy = 0.001*xy
     u = fun(xy)
 
     mesh = simpleMesh(u,xy)
@@ -244,7 +250,7 @@ if __name__ == "__main__":
 
     xy_c = mesh.xy_c
     e_c = mesh.e_c
-    hessian = np.dot(e_c, np.dot(ddfun(xy_c),e_c))
+    hessian = np.dot(e_c, np.dot(ddfun(xy_c),e_c))/(e_c[0]**2 + e_c[1]**2)
 
     print('exact hessian is ', hessian)
 

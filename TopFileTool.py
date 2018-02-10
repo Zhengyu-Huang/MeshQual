@@ -1,6 +1,6 @@
 __author__ = 'zhengyuh'
 import sys
-
+import numpy as np
 def read_tet(mshfile):
     '''
     This function reads top file, mshfile, extract the node coordinates in the list nodes,
@@ -63,7 +63,7 @@ def read_tet(mshfile):
 
     return nodes, elems, boundaryNames, boundaries
 
-def write_tet(nodes,elems, boundaryNames, boundaries, mshfile = 'domain.top'):
+def write_tet(nodes,elems, boundaryNames, boundaries, mshfile = 'domain.top', volFunc = lambda x: 0):
     '''
     This function writes top file, mshfile, node coordinates are  in the list nodes,
     and element node numbers are in elems(the node number is 0-based index instead of top file'
@@ -72,6 +72,7 @@ def write_tet(nodes,elems, boundaryNames, boundaries, mshfile = 'domain.top'):
     :param nodes: a list of node coordinates
     :param elems: a list of elems node number
     :param boundaries: a list of several lists, each sublist is a list of boundary triangle node numbers
+    :param volFunc: function returns 0, 1, 2, 3... input point, return the point's volume label
     '''
 
     file = open(mshfile, 'w')
@@ -81,14 +82,21 @@ def write_tet(nodes,elems, boundaryNames, boundaries, mshfile = 'domain.top'):
     for nN in range(nNodes):
         file.write('%d  %.12f  %.12f  %.12f\n'%(nN + 1, nodes[nN][0],nodes[nN][1],nodes[nN][2]))
 
-    file.write('Elements Volume_0 using FluidNodes\n')
-    for nE in range(nElems):
-        file.write('%d  %d  %d  %d  %d  %d\n'%(nE + 1, 5, elems[nE][0] + 1, elems[nE][1] + 1, elems[nE][2] + 1,elems[nE][3] + 1))
-
+    iElems, volLabel = 0,0
+    while(iElems < nElems):
+        print('Elements Volume_%d using FluidNodes\n'%volLabel)
+        file.write('Elements Volume_%d using FluidNodes\n'%volLabel)
+        for nE in range(nElems):
+            xc = (np.array(nodes[elems[nE][0]]) + np.array(nodes[elems[nE][1]]) + np.array(nodes[elems[nE][2]]))/3.0
+            if volFunc(xc) == volLabel:
+                file.write('%d  %d  %d  %d  %d  %d\n'%(nE + 1, 5, elems[nE][0] + 1, elems[nE][1] + 1, elems[nE][2] + 1,elems[nE][3] + 1))
+                iElems = iElems + 1
+        volLabel = volLabel + 1
     nBounds = len(boundaries)
     for i in range(nBounds):
-
-        file.write('Elements %s using FluidNodes\n' %(boundaryNames[i] + '_' + str(i+1)))
+        if(boundaries == 'None'):
+            continue
+        file.write('Elements %s using FluidNodes\n' %(boundaryNames[i] + '_' + str(i+volLabel)))
         boundary = boundaries[i]
         nTris = len(boundary)
         for nT in range(nTris):
@@ -96,4 +104,4 @@ def write_tet(nodes,elems, boundaryNames, boundaries, mshfile = 'domain.top'):
             file.write('%d  %d  %d  %d  %d\n' % (nE, 4, boundary[nT][0] + 1, boundary[nT][1] + 1, boundary[nT][2] + 1))
 
     file.close()
-    print('Write to top file, %d nodes and %d elements', len(nodes), len(elems))
+    print('Write to top file, %d nodes and %d elements' %(len(nodes), len(elems)))
