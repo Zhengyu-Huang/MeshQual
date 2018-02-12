@@ -84,10 +84,10 @@ def write_tet(nodes,elems, boundaryNames, boundaries, mshfile = 'domain.top', vo
 
     iElems, volLabel = 0,0
     while(iElems < nElems):
-        print('Elements Volume_%d using FluidNodes\n'%volLabel)
-        file.write('Elements Volume_%d using FluidNodes\n'%volLabel)
+        print('Elements FluidMesh_%d using FluidNodes\n'%volLabel)
+        file.write('Elements FluidMesh_%d using FluidNodes\n'%volLabel)
         for nE in range(nElems):
-            xc = (np.array(nodes[elems[nE][0]]) + np.array(nodes[elems[nE][1]]) + np.array(nodes[elems[nE][2]]))/3.0
+            xc = (np.array(nodes[elems[nE][0]]) + np.array(nodes[elems[nE][1]]) + np.array(nodes[elems[nE][2]]) + np.array(nodes[elems[nE][3]]))/4.0
             if volFunc(xc) == volLabel:
                 file.write('%d  %d  %d  %d  %d  %d\n'%(nE + 1, 5, elems[nE][0] + 1, elems[nE][1] + 1, elems[nE][2] + 1,elems[nE][3] + 1))
                 iElems = iElems + 1

@@ -297,9 +297,9 @@ def Tube():
 
 def shockTube():
     #Important the name of these boundaries are important
-    x = np.linspace(-5.0, 5.0, 400)
-    y = np.linspace(-0.2, 0.2, 4)
-    z = np.linspace(-0.2, 0.2, 4)
+    x = np.linspace(-5.0, 5.0, 401)
+    y = np.linspace(-0.05, 0.05, 5)
+    z = np.linspace(-0.05, 0.05, 5)
     boundaryNames = ['SymmetrySurface', 'SymmetrySurface', 'InletFixedSurface',
                      'OutletFixedSurface', 'SymmetrySurface', 'SymmetrySurface']
     simpleKuhnSimplex = KuhnSimplex(x, y, z, boundaryNames)
