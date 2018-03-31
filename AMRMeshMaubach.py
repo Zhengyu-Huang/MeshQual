@@ -344,7 +344,7 @@ class AmrMeshMaubach():
 
 if __name__ == '__main__':
     print('AMR Mesh Maubach')
-    test = 2
+    test = 1
     if(test == 0):
         amrMesh = AmrMeshMaubach('domain.top')
         refineLevel = 50
@@ -360,8 +360,8 @@ if __name__ == '__main__':
         tet_mesh.plot()
     elif(test == 1):
         print('Test conformity refine by elem')
-        amrMesh = AmrMeshMaubach('Naca.top',2)
-        refineLevel = 4
+        amrMesh = AmrMeshMaubach('domain.top',0)
+        refineLevel = 1
         for i in range(refineLevel):
             rElems = list(range(len(amrMesh.markedElems)))
             amrMesh.refine_by_elem(rElems)
