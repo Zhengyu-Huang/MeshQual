@@ -11,6 +11,12 @@ import operator
 
 
 def edge_in_face(edge, face):
+   '''
+   :param edge: [n1, n2]
+   :param face: [m1,m2,m3]
+   :return: the edge is on the face or not
+   '''
+
    if edge[0] in set(face) and edge[1] in set(face):
        return True
    else:
@@ -32,6 +38,9 @@ class PreNumber:
 
 
     def _build_faces(self):
+        '''
+        :return: build a face map faces. which map the face to its neighbor tets
+        '''
         eles = self.eles
         faces = {}
         for ei in range(len(eles)):
@@ -47,6 +56,10 @@ class PreNumber:
         self.faces = faces
 
     def _check_on_boundary(self, fp):
+        '''
+        :param fp: [m1,m2,m3]
+        :return: check whether the face is on the computational domain boundary
+        '''
         faces = self.faces
         es = faces[fp]
         return True if len(es) == 1 else False
@@ -57,6 +70,7 @@ class PreNumber:
         mark its longest edge, if it has multiple longest edges,
         mark the one with largest value, i + j,
         here i, j are the two node ids
+        :return: refineEdge
         '''
 
         eles = self.eles
@@ -80,6 +94,11 @@ class PreNumber:
         self.refineEdges = refineEdges
 
     def _refine_edge(self, ele, nodeMap):
+        '''
+        :param ele: int
+        :param nodeMap: a map
+        :return: the refinement edge [n0, nd] of the element
+        '''
         min, max = np.inf, -1
         for n in ele:
             if nodeMap[n] < min:
@@ -91,6 +110,11 @@ class PreNumber:
         return [n0,nd]
 
     def _putIntoNonBoundaryFaceSet(self, elem_id, nonBoundaryFaceSet):
+        '''
+        :param elem_id: element id
+        :param nonBoundaryFaceSet: a list F
+        :return: put the faces of the element which are not on the fluid domain boundary to the set
+        '''
         eles = self.eles
         refineEdges = self.refineEdges
 
@@ -109,6 +133,13 @@ class PreNumber:
 
 
     def _global_ordering(self):
+        '''
+        Order all nodes, we build the map nodeMap, the order is
+        (nodeMap[n], n) < = > (nodeMap[m], m)
+        todo: different from the one in the paper, to make it O(N)
+        the nodeMap number can be equal for different nodes
+        :return:
+        '''
         faces = self.faces
         eles = self.eles
         refineEdges = self.refineEdges
@@ -148,9 +179,10 @@ class PreNumber:
                 if vp not in nodeMap: #vp is not in the nodeMap
                     if((nodeMap[v],v) > (nodeMap[vf1],vf1) and (nodeMap[v],v) > (nodeMap[vf2],vf2) and (nodeMap[v],v) > (nodeMap[vf3],vf3)) or \
                             ((nodeMap[v],v) < (nodeMap[vf1],vf1) and (nodeMap[v],v) < (nodeMap[vf2],vf2) and (nodeMap[v],v) < (nodeMap[vf3],vf3)):
-                    #no RefEdge insert before v or after v
+                        #no RefEdge insert before v or after v
                         nodeMap[vp] = nodeMap[v]
-                    else:#RefEdge insert after v
+                    else:
+                        #RefEdge insert after v
                         nodeMap[vp] = nodeMap[v]
                 elementMarker[es[1 - i]] = 1
 
@@ -163,30 +195,12 @@ class PreNumber:
 
 
 
-
-
-        
-
-
-
-
-
-
-
-
-
     def _renumber(self):
         '''
-
-
-        :return:
+        :return: renumber the element nodes, and put them in newElems
         '''
-
         nodeMap = self.nodeMap
         eles = self.eles
-
-
-
         newElems = []
 
         for e in eles: #loop all elements
@@ -195,11 +209,6 @@ class PreNumber:
             tetMap = {n0:nodeMap[n0], n1:nodeMap[n1], n2:nodeMap[n2], n3:nodeMap[n3],}
             sortedTetMap = sorted(tetMap.items(), key=operator.itemgetter(1, 0))
             newElems.append([sortedTetMap[0][0], sortedTetMap[1][0], sortedTetMap[2][0], sortedTetMap[3][0]])
-
-            
-
-
-
         self.newElems = newElems
 
 
