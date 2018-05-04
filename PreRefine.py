@@ -25,7 +25,7 @@ class PreRefine:
     def refine(self):
         '''
         insert a node P on the tetrahedron center, to divide it into three new tetrahedra
-        Each child tetrahedron t are divided into 3 tetrahedron by adding a node Q at the original face center
+        Each child tetrahedron t are divided into 4 tetrahedron by adding a node Q at the original face center
 
         The P ----> Z1  Q ---> Z2
         Original edge A,B if A < B: A ---> Z0 B ---> Z3
@@ -55,7 +55,7 @@ class PreRefine:
                 #The face, nodes enen, not include ni
                 enen = [e[j] for j in range(4) if (j != i)]
                 nq = self.faces[triplet_sort(enen[0],enen[1],enen[2])]
-                if nq < 0 :
+                if nq < 0 :# if the face center node has not been added to the node set
 
                     Q = [(nodes[enen[0]][0] + nodes[enen[1]][0] + nodes[enen[2]][0]) / 3.0,
                          (nodes[enen[0]][1] + nodes[enen[1]][1] + nodes[enen[2]][1]) / 3.0,
@@ -103,5 +103,5 @@ class PreRefine:
 
 if __name__ == '__main__':
     #naca2D()
-    naca2D = PreRefine('domain.top','Naca.top')
+    naca2D = PreRefine('cylinder.top','cylinder_iso.top')
 

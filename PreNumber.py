@@ -20,7 +20,6 @@ def edge_in_face(edge, face):
 
 
 
-
 class PreNumber:
     def __init__(self,inputfile,outputfile):
         self.nodes, self.eles, self.boundaryNames, self.boundaries = read_tet(inputfile)
@@ -73,6 +72,8 @@ class PreNumber:
                     sum = ni + nj
                     if(len > maxLen or (len == maxLen and sum > maxSum)):
                         refineEdge = pair_sort(ni, nj)
+                        maxLen = len
+                        maxSum = sum
 
             refineEdges.append(refineEdge)
 
@@ -89,30 +90,37 @@ class PreNumber:
                 nd = n
         return [n0,nd]
 
+    def _putIntoNonBoundaryFaceSet(self, elem_id, nonBoundaryFaceSet):
+        eles = self.eles
+        refineEdges = self.refineEdges
+
+        for fp in [triplet_sort(eles[elem_id][1], eles[elem_id][2], eles[elem_id][3]),
+                   triplet_sort(eles[elem_id][0], eles[elem_id][2], eles[elem_id][3]),
+                   triplet_sort(eles[elem_id][0], eles[elem_id][1], eles[elem_id][3]),
+                   triplet_sort(eles[elem_id][0], eles[elem_id][1], eles[elem_id][2])]:
+            if self._check_on_boundary(fp):
+                continue
+            else:
+                if edge_in_face(refineEdges[elem_id], fp):
+                    nonBoundaryFaceSet.insert(0, fp)
+                else:
+                    nonBoundaryFaceSet.append(fp)
+
+
+
     def _global_ordering(self):
         faces = self.faces
         eles = self.eles
         refineEdges = self.refineEdges
 
-        ne = len(eles)
-        elementMarker = np.zeros(ne)
+        elementMarker = np.zeros(len(eles))
         nodeMap = {}
         nonBoundaryFaceSet = []
 
         ### Put the first element
         elementMarker[0] = 1
-        for fp in [triplet_sort(eles[0][1], eles[0][2], eles[0][3]),
-                   triplet_sort(eles[0][0], eles[0][2], eles[0][3]),
-                   triplet_sort(eles[0][0], eles[0][1], eles[0][3]),
-                   triplet_sort(eles[0][0], eles[0][1], eles[0][2])]:
-            if self._check_on_boundary(fp):
-                continue
-            else:
-                if edge_in_face(refineEdges[0], fp):
-                    nonBoundaryFaceSet.insert(0, fp)
-                else:
-                    nonBoundaryFaceSet.append(fp)
-
+        self._putIntoNonBoundaryFaceSet(0, nonBoundaryFaceSet)
+        # order these nodes of the first element
         n0, nd = refineEdges[0]
         nodeMap[n0] = 0
         nodeMap[nd] = 3
@@ -125,11 +133,10 @@ class PreNumber:
 
         while nonBoundaryFaceSet: # the element
             f = nonBoundaryFaceSet.pop(0)
-            print('face is ', f)
             es = faces[f]
             vf1, vf2, vf3 = f
             for i in range(2):
-                #print('elem marker', len(eles), len(elementMarker), es[1 - i])
+                #prepare to add the nodes of eles[es[1-i]]
                 if(elementMarker[es[1 - i]]):
                      continue
 
@@ -138,10 +145,9 @@ class PreNumber:
 
                 vp = eles[es[1 - i]][0] + eles[es[1 - i]][1] + eles[es[1 - i]][2] + \
                     eles[es[1 - i]][3] - vf1 - vf2 - vf3
-                if vp not in nodeMap: #already been ordered
-                    #print('debug')
-                    #print('>>>', nodeMap[v], nodeMap[vf1], nodeMap[vf2], nodeMap[vf3])
-                    if nodeMap[v] > nodeMap[vf1] and nodeMap[v] > nodeMap[vf2] and nodeMap[v] > nodeMap[vf3]:
+                if vp not in nodeMap: #vp is not in the nodeMap
+                    if((nodeMap[v],v) > (nodeMap[vf1],vf1) and (nodeMap[v],v) > (nodeMap[vf2],vf2) and (nodeMap[v],v) > (nodeMap[vf3],vf3)) or \
+                            ((nodeMap[v],v) < (nodeMap[vf1],vf1) and (nodeMap[v],v) < (nodeMap[vf2],vf2) and (nodeMap[v],v) < (nodeMap[vf3],vf3)):
                     #no RefEdge insert before v or after v
                         nodeMap[vp] = nodeMap[v]
                     else:#RefEdge insert after v
@@ -150,19 +156,7 @@ class PreNumber:
 
                 #mark T'
                 #loop face of T'
-                n0,nd = self._refine_edge(eles[es[1 - i]], nodeMap)
-                for fp in [triplet_sort(eles[es[1 - i]][1], eles[es[1 - i]][2], eles[es[1 - i]][3]),
-                           triplet_sort(eles[es[1 - i]][0], eles[es[1 - i]][2], eles[es[1 - i]][3]),
-                           triplet_sort(eles[es[1 - i]][0], eles[es[1 - i]][1], eles[es[1 - i]][3]),
-                           triplet_sort(eles[es[1 - i]][0], eles[es[1 - i]][1], eles[es[1 - i]][2])]:
-                    print('fp is ', fp)
-                    if len(faces[fp]) == 1:
-                        continue
-                    if edge_in_face([n0, nd], fp):
-                        nonBoundaryFaceSet.insert(0, fp)
-
-                    else :
-                        nonBoundaryFaceSet.append(fp)
+                self._putIntoNonBoundaryFaceSet(es[1 - i], nonBoundaryFaceSet)
 
 
         self.nodeMap = nodeMap
@@ -183,12 +177,7 @@ class PreNumber:
 
     def _renumber(self):
         '''
-        insert a node P on the tetrahedron center, to divide it into three new tetrahedra
-        Each child tetrahedron t are divided into 4 tetrahedron by adding a node Q at the original face center
 
-        The P ----> Z1  Q ---> Z2
-        Original edge A,B if A < B: A ---> Z0 B ---> Z3
-                          if A > B: A ---> Z3 B ---> Z0
 
         :return:
         '''
@@ -204,7 +193,7 @@ class PreNumber:
             #the tetrahedron center is P
             n0,n1,n2,n3 = e
             tetMap = {n0:nodeMap[n0], n1:nodeMap[n1], n2:nodeMap[n2], n3:nodeMap[n3],}
-            sortedTetMap = sorted(tetMap.items(), key=operator.itemgetter(1))
+            sortedTetMap = sorted(tetMap.items(), key=operator.itemgetter(1, 0))
             newElems.append([sortedTetMap[0][0], sortedTetMap[1][0], sortedTetMap[2][0], sortedTetMap[3][0]])
 
             
@@ -221,7 +210,7 @@ class PreNumber:
         boundaries = self.boundaries
         boundaryNames = self.boundaryNames
         write_tet(nodes, eles, boundaryNames, boundaries,outputfile)
-        print('Be careful, all these elements have tag = 2')
+        print('Be careful, all these elements have tag = 0')
 
 
 
@@ -231,5 +220,5 @@ class PreNumber:
 
 if __name__ == '__main__':
     #naca2D()
-    naca2D = PreNumber('domain.top','domain_iso.top')
+    naca2D = PreNumber('domain2.top','domain2_iso.top')
 
