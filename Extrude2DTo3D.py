@@ -1,10 +1,8 @@
 import copy as copy
+import numpy as np
 import TopFileTool
-from Utility import *
 
-
-
-nlayers = 1
+nlayers = 2
 dz = 0.1
 mshfile = "domain.top"
 extrudeBoundaryName =  "SymmetrySurface"
@@ -34,10 +32,11 @@ for i in range(nlayers+1):
 elems3D = np.zeros((nelems2D * (nlayers) * 3, 4), dtype=int)
 
 boundaries3D = [[] for i in range(nboundaries2D+1)] # last one is for top and bottom boundaries
-boundaryNames3D = copy.copy(boundaries2D)
+boundaryNames3D = copy.copy(boundaryNames2D)
 boundaryNames3D.append(extrudeBoundaryName )
 
 nelems3D = 0
+v1, v2, v3 = np.zeros(4, dtype=int),np.zeros(4, dtype=int),np.zeros(4, dtype=int)
 for elem in elems2D:
 
     if (elem[0] < elem[1] and elem[0] < elem[2]):
@@ -49,18 +48,20 @@ for elem in elems2D:
 
 
     if (min(VI[1], VI[5]) < min(VI[2], VI[4])):
-        v1 = [VI[0], VI[1], VI[2], VI[5]]
-        v2 = [VI[0], VI[1], VI[5], VI[4]]
-        v3 = [VI[0], VI[4], VI[5], VI[3]]
+        v1[:] = [VI[0], VI[1], VI[2], VI[5]]
+        v2[:] = [VI[0], VI[1], VI[5], VI[4]]
+        v3[:] = [VI[0], VI[4], VI[5], VI[3]]
     else:
-        v1 = [VI[0], VI[1], VI[2], VI[4]]
-        v2 = [VI[0], VI[4], VI[2], VI[5]]
-        v3 = [VI[0], VI[4], VI[5], VI[3]]
+        v1[:] = [VI[0], VI[1], VI[2], VI[4]]
+        v2[:] = [VI[0], VI[4], VI[2], VI[5]]
+        v3[:] = [VI[0], VI[4], VI[5], VI[3]]
 
     e1, e2, e3 = nelems3D + 0, nelems3D + 1, nelems3D + 2
-    elems3D[e1,:] = v1
-    elems3D[e2,:] = v2
-    elems3D[e3,:] = v3
+
+    for ilayer in range(nlayers):
+        elems3D[e1 + 3*nelems2D*ilayer,:] = v1 + ilayer*nnodes2D
+        elems3D[e2 + 3*nelems2D*ilayer,:] = v2 + ilayer*nnodes2D
+        elems3D[e3 + 3*nelems2D*ilayer,:] = v3 + ilayer*nnodes2D
 
     nelems3D = nelems3D + 3
 
@@ -80,7 +81,7 @@ for elem in elems2D:
 
 
 
-
+print(boundaryNames3D)
 TopFileTool.write_tet(nodes3D,elems3D, boundaryNames3D, boundaries3D, mshfile = "domain.3D.top")
 
 
