@@ -37,3 +37,40 @@ def inside_tet(xyz,point):
             return False
 
     return True
+
+
+def inside_tri(xy, point):
+    '''
+    :param xy:   numpy array, double[3][2]
+    :param point: numpy array, double[2]
+    :return: whether the point is in the triangle or not
+    '''
+
+    for i in range(3):
+        n0,n1 = [n for n in range(3) if n != i]
+        alpha = np.cross(xy[n0, :] - point,  xy[n1, :] - point) / np.cross(xy[n0, :] - xy[i, :], xy[n1, :] - xy[i, :])
+
+        if(alpha < 0):
+            return False
+
+    return True
+
+
+def intersect_tri(xy, line):
+    '''
+    :param xy:   numpy array, double[3][2]
+    :param point: numpy array, double[4] x0,y0 --- x1,y1
+    :return: whether the linesegment interesects the triangle or not
+    '''
+
+    p0, p1 = line[0:2], line[2:4]
+
+    for i in range(3):
+        n0,n1 = [n for n in range(3) if n != i]
+        alpha = np.cross(p0 - xy[n0,:], p1 - p0)/ np.cross(xy[n1,:] - xy[n0,:], p1 - p0)
+        beta = np.cross(xy[n0, :] - p0, xy[n1,:] - xy[n0,:]) / np.cross(p1 - p0, xy[n1, :] - xy[n0, :])
+
+        if(alpha >= 0 and alpha <= 1.0 and beta >= 0 and beta <= 1.0):
+            return True
+
+    return False

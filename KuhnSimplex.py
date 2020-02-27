@@ -1,6 +1,6 @@
 __author__ = 'zhengyuh'
 import numpy as np
-from TopFileTool import write_tet
+from TopFileTool import write_tet, write_tri
 
 
 class KuhnSimplex:
@@ -162,6 +162,102 @@ class KuhnSimplex:
 
 
 
+class KuhnSimplex2D:
+    def __init__(self,x,y, boundaryNames):
+        self.x,  self.y = x,y
+        self.nx, self.ny = len(x), len(y)
+        self.nodes = self.create_nodes()
+        self.eles = self.create_tri()
+        self.boundaries = self.create_boundaries()
+        self.boundaryNames = boundaryNames
+
+
+    def _node_id(self,ix,iy):
+        nx, ny = self.nx, self.ny
+        return ix + iy*nx
+
+    def create_nodes(self):
+        x,y = self.x, self.y
+        nx, ny = self.nx, self.ny
+
+
+        nodes = np.empty((nx*ny, 2))
+
+        xx,yy = np.meshgrid(x,y)
+
+        nodes[:, 0] = np.reshape(xx, (1, -1))
+        nodes[:, 1] = np.reshape(yy, (1, -1))
+
+
+        return nodes
+
+
+
+
+
+    def create_tri(self):
+        '''
+        cut each small quad into 2 triangles
+
+        nodes = [n0,n1,n2,n3]
+
+        n0: (0,0)
+        n1: (1,0)
+        n2: (0,1)
+        n3: (1,1)
+
+        T(0, 1, 2)
+        T(1, 3, 2)
+
+
+        :return:
+        '''
+        nx, ny = self.nx, self.ny
+
+        eles = np.empty((2*(nx - 1) * (ny - 1), 3), dtype=int)
+
+        for j in range(ny - 1):
+            for i in range(nx - 1):
+                quadId = i + j*(nx-1)
+                nn = [self._node_id(i, j), self._node_id(i + 1, j), self._node_id(i, j + 1), self._node_id(i + 1, j + 1)]
+                eles[2 * quadId:2 * (quadId + 1), :] = [[nn[0], nn[1], nn[2]],
+                                                        [nn[3], nn[2], nn[1]]]
+
+
+        return eles
+
+    def create_boundaries(self):
+        nx, ny = self.nx, self.ny
+        bc = [[],[],[],[]]
+
+        # left x = xmin
+
+        for j in range(ny - 1):
+            i = 0
+            bc[0].append([self._node_id(i, j), self._node_id(i , j + 1)])
+        # right x = xmax
+        for j in range(ny - 1):
+            i = nx - 1
+            bc[1].append([self._node_id(i, j), self._node_id(i, j + 1)])
+        # front y = ymin
+        for i in range(nx - 1):
+            j = 0
+            bc[2].append([self._node_id(i, j), self._node_id(i + 1, j)])
+
+        # back y = ymax
+        for i in range(nx - 1):
+            j = ny - 1
+            bc[3].append([self._node_id(i, j), self._node_id(i + 1, j)])
+        return bc
+
+
+    def write_topfile(self, outputfile = 'domain.top', volFunc = lambda x: 0):
+        nodes = self.nodes
+        eles = self.eles
+        boundaries = self.boundaries
+        boundaryNames = self.boundaryNames
+        write_tri(nodes, eles, boundaryNames, boundaries, outputfile, volFunc)
+
 
 
 # def geomspace(x0, xn, dx0, ratio, includeX0 = True):
@@ -270,9 +366,9 @@ def parachute3D(type=0):
     xcl, xcr, nx = -15.0, 15.0, 61
     xc = np.linspace(xcl, xcr, nx)
     dxc = (xcr - xcl) / (nx - 1)
-    xRatio = 1.2
-    xl = geomspace(xcl, -150, -dxc, False, 'num', [xRatio])
-    xr = geomspace(xcr, 150, dxc, False, 'num', [xRatio])
+    xRatio = 1.1
+    xl = geomspace(xcl, -80, -dxc, False, 'num', [xRatio])
+    xr = geomspace(xcr, 80, dxc, False, 'num', [xRatio])
 
 
     x = [*reversed(xl),*xc,*xr]
@@ -280,22 +376,121 @@ def parachute3D(type=0):
 
     y = x
     # z direction, the parachute is in [35.7358, 39.2198]
-    # the fluid domain is [-100 200]
+    # the fluid domain is [-20 200]
 
     if(type == 0):
         zcl, zcr, nz = 25.0, 50.0, 51
 
     elif(type == 1):
-        zcl, zcr, nz = -20.0, 50.0, 141
+        #zcl, zcr, nz = -10.0, 60.0, 141
+        zcl, zcr, nz = -15.0, 65.0, 161
 
     zc = np.linspace(zcl, zcr, nz)
     dzc = (zcr - zcl)/(nz - 1)
-    zRatio = 1.4
-    zl = geomspace(zcl, -100, -dzc, False, 'num', [zRatio])
-    zr = geomspace(zcr, 150, dzc, False, 'num', [zRatio])
+    zRatio = 1.1
+    zl = geomspace(zcl, -20, -dzc, False, 'num', [zRatio])
+    zr = geomspace(zcr, 180, dzc, False, 'num', [zRatio])
     z = [*reversed(zl), *zc, *zr]
 
+    #shift the domain
+    #z = np.array(z) - 4.7487995381941190e+01
+
     boundaryNames = ['InletFixedSurface' for i in range(6)]
+    print('len(x) ', len(x), ' len(y) ', len(y), ' len(z) ', len(z))
+    simpleKuhnSimplex = KuhnSimplex(x,y,z, boundaryNames)
+
+    print('Writing to top file')
+    simpleKuhnSimplex.write_topfile()
+
+
+
+def cylinderStretched3D():
+    '''
+    To generate initial mesh for 3D parachute
+    :param type: 0: just for canopy, 1: for both the whole parachute
+    :return:
+    '''
+    # x direction, the parachute is in [-7.7235, 7.7235]
+    # the fluid domain is [-150 150]
+    xcl, xcr, nx = -1.0, 1.0, 100
+    xc = np.linspace(xcl, xcr, nx)
+    dxc = (xcr - xcl) / (nx - 1)
+    xRatio = 1.1
+    xl = geomspace(xcl, -10, -dxc, False, 'num', [xRatio])
+    xr = geomspace(xcr, 50, dxc, False, 'num', [xRatio])
+    x = [*reversed(xl),*xc,*xr]
+
+
+    ycl, ycr, ny = -1.5, 1.5, 32
+    yc = np.linspace(ycl, ycr, ny)
+    dyc = (ycr - ycl) / (ny - 1)
+    yRatio = 1.1
+    yl = geomspace(ycl, -10, -dyc, False, 'num', [yRatio])
+    yr = geomspace(ycr, 10, dyc, False, 'num', [yRatio])
+    y = [*reversed(yl),*yc,*yr]
+
+    # z direction, the parachute is in [35.7358, 39.2198]
+    # the fluid domain is [-20 200]
+
+   
+   
+    zcl, zcr, nz = -1.0, 1.0, 100
+    zc = np.linspace(zcl, zcr, nz)
+    dzc = (zcr - zcl)/(nz - 1)
+    zRatio = 1.1
+    zl = geomspace(zcl, -10, -dzc, False, 'num', [zRatio])
+    zr = geomspace(zcr, 10, dzc, False, 'num', [zRatio])
+    z = [*reversed(zl), *zc, *zr]
+
+    #shift the domain
+    #z = np.array(z) - 4.7487995381941190e+01
+
+    boundaryNames = ['InletFixedSurface' for i in range(6)]
+    print('len(x) ', len(x), ' len(y) ', len(y), ' len(z) ', len(z))
+    simpleKuhnSimplex = KuhnSimplex(x,y,z, boundaryNames)
+
+    print('Writing to top file')
+    simpleKuhnSimplex.write_topfile()
+
+def subscaleParachute3D():
+    '''
+    To generate initial mesh for 3D parachute
+    :param type: 0: just for canopy, 1: for both the whole parachute
+    :return:
+    '''
+    # x direction, the parachute is in [-7.7235, 7.7235]
+    # the fluid domain is [-150 150]
+    scale = 0.04
+    xcl, xcr, nx = -15.0*scale, 15.0*scale, 61
+    xc = np.linspace(xcl, xcr, nx)
+    dxc = (xcr - xcl) / (nx - 1)
+    xRatio = 1.1
+    xl = geomspace(xcl, -80*scale, -dxc, False, 'num', [xRatio])
+    xr = geomspace(xcr, 80*scale, dxc, False, 'num', [xRatio])
+
+
+    x = [*reversed(xl),*xc,*xr]
+
+
+    y = x
+    # z direction, the parachute is in [35.7358, 39.2198]
+    # the fluid domain is [-20 200]
+
+    
+    zcl, zcr, nz = -15.0*scale, 65.0*scale, 161
+
+    zc = np.linspace(zcl, zcr, nz)
+    dzc = (zcr - zcl)/(nz - 1)
+    zRatio = 1.1
+    zl = geomspace(zcl, -20*scale, -dzc, False, 'num', [zRatio])
+    zr = geomspace(zcr, 180*scale, dzc, False, 'num', [zRatio])
+    z = [*reversed(zl), *zc, *zr]
+
+    #shift the domain
+    #z = np.array(z) - 4.7487995381941190e+01
+
+    boundaryNames = ['InletFixedSurface' for i in range(6)]
+    print('len(x) ', len(x), ' len(y) ', len(y), ' len(z) ', len(z))
     simpleKuhnSimplex = KuhnSimplex(x,y,z, boundaryNames)
 
     print('Writing to top file')
@@ -305,10 +500,9 @@ def parachute3D(type=0):
 
 
 
-# def naca2D():
+# def RAE2822():
 #
-#     #xcl,xcr,xcn = -1.0/9.0, 1.25 - 1.0/9.0, 1251
-#     xcl, xcr, xcn = -1.0 , 4.0, 701
+#     xcl,xcr,xcn = -1.0/9.0, 1.5 - 1.0/9.0, 1501
 #     xc = np.linspace(xcl, xcr, xcn)
 #     dxc = xc[1] - xc[0]
 #     xRatio = 1.1
@@ -316,8 +510,8 @@ def parachute3D(type=0):
 #     xr = geomspace(xcr, 30, dxc, xRatio, False)
 #     x = [*reversed(xl), *xc, *xr]
 #
-#     # ycl, ycr, ycn = -0.15, 0.15, 301
-#     ycl, ycr, ycn = -0.75, 0.75, 211
+#
+#     ycl, ycr, ycn = -0.75, 0.75, 151
 #     yc = np.linspace(ycl, ycr, ycn)
 #     dyc = yc[1] - yc[0]
 #     yRatio = 1.1
@@ -337,9 +531,14 @@ def parachute3D(type=0):
 
 
 def naca2D():
+    '''
+    This is the domain file used for AMR heaving NACA
+    :return:
+    '''
 
     #xcl,xcr,xcn = -1.0/9.0, 1.25 - 1.0/9.0, 1251
-    xcl, xcr, xcn = -2.0/3.0, 5. - 2.0/3.0, 1401
+    eps = 5.e-4
+    xcl, xcr, xcn = -0.5 + eps, 5. - 0.5 + eps, 1001
     xc = np.linspace(xcl, xcr, xcn)
     dxc = xc[1] - xc[0]
     xRatio = 1.1
@@ -348,7 +547,7 @@ def naca2D():
     x = [*reversed(xl), *xc, *xr]
 
     # ycl, ycr, ycn = -0.15, 0.15, 301
-    ycl, ycr, ycn = -1.0, 1.0, 561
+    ycl, ycr, ycn = -1.0, 1.0, 401
     yc = np.linspace(ycl, ycr, ycn)
     dyc = yc[1] - yc[0]
     yRatio = 1.1
@@ -363,6 +562,73 @@ def naca2D():
 
     print('Writing to top file')
     simpleKuhnSimplex.write_topfile()
+
+
+def naca2D():
+    '''
+    This is the domain file used for AMR heaving NACA
+    :return:
+    '''
+
+    #xcl,xcr,xcn = -1.0/9.0, 1.25 - 1.0/9.0, 1251
+    eps = 5.e-4
+    xcl, xcr, xcn = -0.5 + eps, 5. - 0.5 + eps, 1001
+    xc = np.linspace(xcl, xcr, xcn)
+    dxc = xc[1] - xc[0]
+    xRatio = 1.1
+    xl = geomspace(xcl, -50, -dxc, False, 'num', [xRatio])
+    xr = geomspace(xcr, 50, dxc, False, 'num', [xRatio])
+    x = [*reversed(xl), *xc, *xr]
+
+    # ycl, ycr, ycn = -0.15, 0.15, 301
+    ycl, ycr, ycn = -1.0, 1.0, 401
+    yc = np.linspace(ycl, ycr, ycn)
+    dyc = yc[1] - yc[0]
+    yRatio = 1.1
+    yl = geomspace(ycl, -50, -dyc, False, 'num', [yRatio])
+    yr = geomspace(ycr,  50, dyc, False, 'num', [yRatio])
+    y = [*reversed(yl), *yc, *yr]
+
+    z = [0.0, 0.005]
+    boundaryNames=['SymmetrySurface','SymmetrySurface','InletFixedSurface',
+                   'InletFixedSurface','InletFixedSurface','InletFixedSurface']
+    simpleKuhnSimplex = KuhnSimplex(x,y,z,boundaryNames)
+
+    print('Writing to top file')
+    simpleKuhnSimplex.write_topfile()
+
+
+def RAE2822():
+    '''
+    This is the domain file used for AMR Wall Model RAE2822
+    :return:
+    '''
+
+    xcl,xcr,xcn = -1.0/9.0, 1.5 - 1.0/9.0, 1501
+    xc = np.linspace(xcl, xcr, xcn)
+    dxc = xc[1] - xc[0]
+    xRatio = 1.1
+    xl = geomspace(xcl, -50, -dxc, False, 'num', [xRatio])
+    xr = geomspace(xcr, 50, dxc, False, 'num', [xRatio])
+    x = [*reversed(xl), *xc, *xr]
+
+    # ycl, ycr, ycn = -0.15, 0.15, 301
+    ycl, ycr, ycn = -0.075, 0.075, 151
+    yc = np.linspace(ycl, ycr, ycn)
+    dyc = yc[1] - yc[0]
+    yRatio = 1.1
+    yl = geomspace(ycl, -50, -dyc, False, 'num', [yRatio])
+    yr = geomspace(ycr,  50, dyc, False, 'num', [yRatio])
+    y = [*reversed(yl), *yc, *yr]
+
+    z = [0.0, 0.002]
+    boundaryNames=['SymmetrySurface','SymmetrySurface','InletFixedSurface',
+                   'InletFixedSurface','InletFixedSurface','InletFixedSurface']
+    simpleKuhnSimplex = KuhnSimplex(x,y,z,boundaryNames)
+
+    print('Writing to top file')
+    simpleKuhnSimplex.write_topfile()
+
 
 
 
@@ -423,9 +689,13 @@ def Tube():
 
 def shockTube():
     #Important the name of these boundaries are important
-    x = np.linspace(-5.0, 5.0, 401)
-    y = np.linspace(-0.05, 0.05, 5)
-    z = np.linspace(-0.05, 0.05, 5)
+    #x = np.linspace(-5.0, 5.0, 101)
+    #y = np.linspace(-0.25, 0.25, 6)
+    #z = np.linspace(-0.25, 0.25, 6)
+
+    x = np.linspace(-2.5, 2.5, 101)
+    y = np.linspace(-0.05, 0.05, 3)
+    z = np.linspace(-0.05, 0.05, 3)
     boundaryNames = ['SymmetrySurface', 'SymmetrySurface', 'InletFixedSurface',
                      'OutletFixedSurface', 'SymmetrySurface', 'SymmetrySurface']
     simpleKuhnSimplex = KuhnSimplex(x, y, z, boundaryNames)
@@ -437,16 +707,16 @@ def shockTube():
 
 def uniform2D():
     # for circle
-    # x = np.linspace(-2.0, 8.0, 100*2)
-    # y = np.linspace(-4.0, 4.0, 80*2)
+    x = np.linspace(-4.0, 8.0, 120)
+    y = np.linspace(-4.0, 4.0, 80)
 
     # for NACA
-    x = np.linspace(-25.0, 25.0, 100)
-    y = np.linspace(-25.0, 25.0, 100)
+    # x = np.linspace(-1.0, 2.0, 20)
+    # y = np.linspace(-0.3, 0.3, 20)
 
 
 
-    z = [0.0, 0.001]
+    z = [0, 0.1]
     boundaryNames=['SymmetrySurface','SymmetrySurface','InletFixedSurface',
                    'InletFixedSurface','InletFixedSurface','InletFixedSurface']
     simpleKuhnSimplex = KuhnSimplex(x,y,z,boundaryNames)
@@ -457,13 +727,22 @@ def uniform2D():
 
 def uniform3D():
     # for sphere
-    x = np.linspace(0.0, 10.0, 11)
-    y = np.linspace(0.0, 10.0, 11)
-    z = np.linspace(0.0, 10.0, 11)
+
+    # x = np.linspace(-1.0,      4.0,       51)
+    # y = np.linspace(-1.0,      1.0,       21)
+    # z = np.linspace(-1.0,     16.0,      171)
+
+    x = np.linspace(-2.0,      4.0,       31)
+    y = np.linspace(-2.0,      2.0,       21)
+    z = np.linspace(-2.0,      8.0,       51)
+
+    # x = np.linspace(-0.1 ,0.1,   26)
+    # y = np.linspace(-0.1, 0.1,   26)
+    # z = np.linspace(-0.2, 1.0,   51)
 
 
 
-    boundaryNames=['InletFixedSurface','InletFixedSurface','InletFixedSurface',
+    boundaryNames=['InletFixedSurface','SymmetrySurface','InletFixedSurface',
                    'InletFixedSurface','InletFixedSurface','InletFixedSurface']
     simpleKuhnSimplex = KuhnSimplex(x,y,z,boundaryNames)
 
@@ -533,13 +812,103 @@ def sphere3D():
     print('Writing to top file')
     simpleKuhnSimplex.write_topfile()
 
+def deformedShape():
+    x = np.linspace( -5.0,   15.0, 41)
+    y = np.linspace( -5.0,    5.0, 21)
+    z = np.linspace(-10.0,   10.0, 41)
+
+
+    boundaryNames = ['OutletFixedSurface', 'OutletFixedSurface', 'InletFixedSurface',
+                     'OutletFixedSurface', 'OutletFixedSurface', 'OutletFixedSurface']
+    simpleKuhnSimplex = KuhnSimplex(x, y, z, boundaryNames)
+
+    print('Writing to top file')
+    simpleKuhnSimplex.write_topfile()
+
+
+def F16():
+    '''
+    To generate initial mesh for F16
+    :return:
+    '''
+    # x direction, the parachute is in [-7.7235, 7.7235]
+    # the fluid domain is [-150 150]
+    #body = np.array([[-7, 566.797],[-186.325, 186.325],[38.8403, 217.66]])
+    #body = np.array([[-7, 566.797], [-186.325, 186.325], [38.8403, 135.373]])
+
+    xcl, xcr, nx = -20.0, 780.0, 41
+    xc = np.linspace(xcl, xcr, nx)
+    dxc = (xcr - xcl) / (nx - 1)
+    xRatio = 1.1
+    xl = geomspace(xcl, -3000, -dxc, False, 'num', [xRatio])
+    xr = geomspace(xcr, 3000, dxc, False, 'num', [xRatio])
+    x = [*reversed(xl),*xc,*xr]
+
+    ycl, ycr, ny = -300.0, 300.0, 31
+    yc = np.linspace(ycl, ycr, ny)
+    dyc = (ycr - ycl) / (ny - 1)
+    yRatio = 1.1
+    yl = geomspace(ycl, -1500, -dyc, False, 'num', [yRatio])
+    yr = geomspace(ycr, 1500, dyc, False, 'num', [yRatio])
+    y = [*reversed(yl), *yc, *yr]
+
+    zcl, zcr, nz = 0.0, 240.0, 49
+    zc = np.linspace(zcl, zcr, nz)
+    dzc = (zcr - zcl)/(nz - 1)
+    zRatio = 1.1
+    zl = geomspace(zcl, -3000, -dzc, False, 'num', [zRatio])
+    zr = geomspace(zcr, 3000, dzc, False, 'num', [zRatio])
+    z = [*reversed(zl), *zc, *zr]
+
+
+
+    boundaryNames = ['InletFixedSurface' for i in range(6)]
+    print('len(x) ', len(x), ' len(y) ', len(y), ' len(z) ', len(z))
+    simpleKuhnSimplex = KuhnSimplex(x,y,z, boundaryNames)
+
+    print('Writing to top file')
+    simpleKuhnSimplex.write_topfile()
+
+
+def quad2D():
+
+
+    '''
+    To generate 2D quad to test
+    :return:
+    '''
+
+    xl, xr, nx = -1.0, 1.0, 10
+    x = np.linspace(xl, xr, nx)
+
+
+    yl, yr, ny = 0.0, 1.0, 10
+    y = np.linspace(yl, yr, ny)
+
+
+    boundaryNames = ['InletFixedSurface',  'InletFixedSurface',  'SymmetrySurface',  'SymmetrySurface']
+    print('len(x) ', len(x), ' len(y) ', len(y))
+    simpleKuhnSimplex = KuhnSimplex2D(x, y, boundaryNames)
+
+    print('Writing to top file')
+    simpleKuhnSimplex.write_topfile()
+
+
 if __name__ == '__main__':
     #uniform2D()
-    #shockTube()
-    #parachute3D(1)
-    heavingNaca2D()
+    #RAE2822()
+    #naca2D();
+    #RAE2822();
+    #uniform2D();
+    #heavingNaca2D()
     #Tube()
     #shockTube()
+    #parachute3D(1)
+    #subscaleParachute3D()
+    #deformedShape()
+    #F16()
+    quad2D()
+    #cylinderStretched3D()
     # x = [1,2]
     # y = [4,5]
     # z = [7,8]
