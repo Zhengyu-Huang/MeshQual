@@ -258,9 +258,7 @@ class Amr2DMesh():
 
 
 
-    def coarsen(self):
-        #todo
-        print('todo, have not implemented yet')
+
 
     def output_to_top(self,mshfile):
         '''
