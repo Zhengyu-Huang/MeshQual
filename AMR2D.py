@@ -345,8 +345,8 @@ if __name__ == '__main__':
         for i in range(refineLevel):
             rElems = amrMesh.find_point(singularity)
             amrMesh.refine_by_elem(rElems)
-        amrMesh.output_to_top('Refined_mesh.top')
-        amrMesh.plot_mesh('Refined_mesh.png')
+        amrMesh.output_to_top('domain.refined.top')
+        amrMesh.plot_mesh('domain.refined.png')
 
     if(test == 1):
         amrMesh = Amr2DMesh('domain.top')
@@ -355,8 +355,8 @@ if __name__ == '__main__':
         for i in range(refineLevel):
             rElems = amrMesh.find_line(line)
             amrMesh.refine_by_elem(rElems)
-        amrMesh.output_to_top('Refined_mesh.top')
-        amrMesh.plot_mesh('Refined_mesh.png')
+        amrMesh.output_to_top('domain.refined.top')
+        amrMesh.plot_mesh('domain.refined.png')
 
 
 
